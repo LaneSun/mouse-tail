@@ -9,7 +9,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { getPointerWatcher } from 'resource:///org/gnome/shell/ui/pointerWatcher.js';
 
 // 配置参数
-const FADE_DURATION = 150; // 轨迹淡出时长（毫秒）
+const FADE_DURATION = 200; // 轨迹淡出时长（毫秒）
 const LINE_WIDTH    = 8;    // 线条宽度
 
 // 自定义绘图层，继承自 St.DrawingArea
@@ -136,43 +136,38 @@ export default class MouseTrailExtension extends Extension {
         cr.setLineWidth(LINE_WIDTH);
 
         // 遍历轨迹点，依次两两连接绘制线段
-        if (this._points.length >= 8) {
+        if (this._points.length >= 3) {
         
             // 构建平滑路径
             cr.newPath();
             let pts = this._points;
 
-            if (pts.length === 2) {
-                // 只有两个点时直接绘制直线
-                cr.setSourceRGBA(1, 1, 1, 0.5);
+            // 使用 Catmull-Rom 插值转换为贝塞尔曲线
+            for (let i = 0; i < pts.length - 1; i++) {
+                let p0 = (i === 0) ? pts[i] : pts[i - 1];
+                let p1 = pts[i];
+                let p2 = pts[i + 1];
+                let p3 = (i + 2 < pts.length) ? pts[i + 2] : p2;
+
+                let age = now - p1.time;
+                if (age > FADE_DURATION) continue; // 超出淡出时长的点不绘制
                 
-                cr.moveTo(pts[0].x, pts[0].y);
-                cr.lineTo(pts[1].x, pts[1].y);
+                let alpha = Math.min(
+                    i / (pts.length - 1),
+                    (Math.max(0, pts.length - i - 3) / 16) ** 0.5,
+                    1 - (age / FADE_DURATION),
+                );
+                cr.setSourceRGBA(1, 1, 1, alpha * 0.5);
+
+                // 计算控制点（公式参考 Catmull-Rom 到 Cubic Bezier 的转换）
+                let cp1x = p1.x + (p2.x - p0.x) / 6;
+                let cp1y = p1.y + (p2.y - p0.y) / 6;
+                let cp2x = p2.x - (p3.x - p1.x) / 6;
+                let cp2y = p2.y - (p3.y - p1.y) / 6;
+
+                cr.moveTo(p1.x, p1.y);
+                cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
                 cr.stroke();
-            } else {
-                // 使用 Catmull-Rom 插值转换为贝塞尔曲线
-                for (let i = 0; i < pts.length - 1; i++) {
-                    let p0 = (i === 0) ? pts[i] : pts[i - 1];
-                    let p1 = pts[i];
-                    let p2 = pts[i + 1];
-                    let p3 = (i + 2 < pts.length) ? pts[i + 2] : p2;
-
-                    let age = now - p1.time;
-                    if (age > FADE_DURATION) continue; // 超出淡出时长的点不绘制
-                    
-                    let alpha = 1 - (age / FADE_DURATION);
-                    cr.setSourceRGBA(1, 1, 1, alpha * 0.5);
-
-                    // 计算控制点（公式参考 Catmull-Rom 到 Cubic Bezier 的转换）
-                    let cp1x = p1.x + (p2.x - p0.x) / 6;
-                    let cp1y = p1.y + (p2.y - p0.y) / 6;
-                    let cp2x = p2.x - (p3.x - p1.x) / 6;
-                    let cp2y = p2.y - (p3.y - p1.y) / 6;
-
-                    cr.moveTo(p1.x, p1.y);
-                    cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
-                    cr.stroke();
-                }
             }
         
         }
