@@ -20,6 +20,8 @@ const MouseTrailLayer = GObject.registerClass({
         this._extension = extension;
         // 设置 reactive 为 false，确保此层不拦截鼠标事件
         super._init({ reactive: false });
+        this.set_track_hover(false);
+        this.set_reactive(false);
         // 初始时设置尺寸为屏幕大小
         this.set_size(global.stage.width, global.stage.height);
     }
