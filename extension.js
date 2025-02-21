@@ -56,10 +56,12 @@ export default class MouseTrailExtension extends Extension {
         this._points = [];
 
         // 创建自定义绘图层（全屏覆盖，非交互型）
+        this._cont = new Clutter.Actor();
         this._drawingLayer = new MouseTrailLayer(this);
 
         // 将绘图层添加到 chrome 层，确保始终位于最上层
-        Main.layoutManager.addChrome(this._drawingLayer);
+        setTimeout(() => global.top_window_group.add_child(this._cont), 5000);
+        this._cont.add_child(this._drawingLayer);
 
         // 捕获全局鼠标移动事件，记录鼠标坐标及时间戳
         this._pointerWatcher = getPointerWatcher();
@@ -96,9 +98,12 @@ export default class MouseTrailExtension extends Extension {
 
         // 移除并销毁绘图层
         if (this._drawingLayer) {
-            Main.layoutManager.removeChrome(this._drawingLayer);
+            this._cont.remove_child(this._drawingLayer);
+            global.top_window_group.remove_child(this._cont);
             this._drawingLayer.destroy();
+            this._cont.destroy();
             this._drawingLayer = null;
+            this._cont = null;
         }
 
         // 清空轨迹点数据
