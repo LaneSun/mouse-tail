@@ -3,7 +3,7 @@
   "description": "A Gnome extension to draw the mouse tail on the screen",
   "uuid": "mouse-tail@lanesun.anlbrain.com",
   "shell-version": [
-    "47"
+    "48"
   ],
   "url": "https://github.com/LaneSun/mouse-tail",
   "donations": {
