@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.mouse-tail" path="/org/gnome/shell/extensions/mouse-tail/">
+    <key name="fade-duration" type="i">
+      <default>200</default>
+      <summary>Fade Duration</summary>
+      <description>How long the trail takes to fade out in milliseconds</description>
+      <range min="50" max="2000"/>
+    </key>
+
+    <key name="line-width" type="i">
+      <default>8</default>
+      <summary>Line Width</summary>
+      <description>Thickness of the mouse trail line</description>
+      <range min="1" max="20"/>
+    </key>
+
+    <key name="color" type="ad">
+      <default>[1.0, 1.0, 1.0]</default>
+      <summary>Trail Color</summary>
+      <description>Color of the mouse trail as RGB values</description>
+    </key>
+
+    <key name="alpha" type="d">
+      <default>0.5</default>
+      <summary>Trail Transparency</summary>
+      <description>Transparency level of the mouse trail (0.0 = transparent, 1.0 = opaque)</description>
+      <range min="0.0" max="1.0"/>
+    </key>
+  </schema>
+</schemalist>
