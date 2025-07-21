@@ -158,18 +158,23 @@ export default class MouseTrailExtension extends Extension {
    * 捕获全局鼠标移动事件的回调
    */
   _onCapturedEvent(x, y) {
-    // 记录当前鼠标位置和时间戳
-    if (this._points.length > 0) {
-      const { x: px, y: py } = this._points.at(-1);
-      if (x === px && y === py) {
-        this._points.at(-1).time = Date.now();
-        if (this._drawingLayer) {
-          this._drawingLayer.queue_repaint();
-        }
-        return;
+    // 噪点消除，用于过滤间距小于1.5倍线条宽度的点
+    function noise_cancel(points, width) {
+      if (points.length <= 2) return points;
+      const next = points.at(-1);
+      const cur = points.at(-2);
+      const prev = points.at(-3);
+      if ((next[0] - prev[0]) ** 2 + (next[1] - prev[1]) ** 2 < width ** 2) {
+        points.splice(-2, 1);
+      } else {
+        cur[0] = Math.round((next[0] + prev[0] + cur[0]) / 3);
+        cur[1] = Math.round((next[1] + prev[1] + cur[1]) / 3);
+        cur[2] = Math.round((next[2] + prev[2] + cur[2]) / 3);
       }
     }
-    this._points.push({ x, y, time: Date.now() });
+    // 记录当前鼠标位置和时间戳
+    this._points.push([x, y, Date.now()]);
+    noise_cancel(this._points, this._lineWidth);
     if (this._drawingLayer) {
       this._drawingLayer.queue_repaint();
     }
@@ -189,44 +194,75 @@ export default class MouseTrailExtension extends Extension {
     // 遍历轨迹点，依次两两连接绘制线段
     if (this._points.length >= 3) {
       // 构建平滑路径
-      cr.newPath();
       const pts = this._points;
 
       // 使用 Catmull-Rom 插值转换为贝塞尔曲线
-      for (let i = 0; i < pts.length - 1; i++) {
+      for (let i = 0; i < pts.length - 2; i++) {
         const p0 = i === 0 ? pts[i] : pts[i - 1];
         const p1 = pts[i];
-        const p2 = pts[i + 1];
+        const p2 = [...pts[i + 1]];
         const p3 = i + 2 < pts.length ? pts[i + 2] : p2;
+        if (i === pts.length - 3) {
+          p2[0] = Math.round((p1[0] + p2[0] + p3[0]) / 3);
+          p2[1] = Math.round((p1[1] + p2[1] + p3[1]) / 3);
+          p2[2] = Math.round((p1[2] + p2[2] + p3[2]) / 3);
+        }
 
-        const age = now - p1.time;
-        if (age > this._fadeLength) continue; // 超出淡出时长的点不绘制
-
-        const alpha = Math.min(
-          i / (pts.length - 1),
-          (Math.max(0, pts.length - i - 3) / 16) ** 0.5,
-          1 - age / this._fadeLength,
+        const alpha_s = Math.min(
+          ((now - p1[2]) / this._fadeLength) * 2,
+          1 - (now - p1[2]) / this._fadeLength,
+          ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5 /
+            (p2[2] - p1[2]) /
+            ((600 * this._lineWidth) / 1000),
         );
-        cr.setSourceRGBA(
+        const alpha_e =
+          i === pts.length - 3
+            ? 0
+            : Math.min(
+                ((now - p2[2]) / this._fadeLength) * 2,
+                1 - (now - p2[2]) / this._fadeLength,
+                ((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2) ** 0.5 /
+                  (p3[2] - p2[2]) /
+                  ((600 * this._lineWidth) / 1000),
+              );
+
+        const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
+        gradient.addColorStopRGBA(
+          0, // 起点偏移量
           this._colorArray[0],
           this._colorArray[1],
           this._colorArray[2],
-          alpha * this._alpha,
+          alpha_s * this._alpha,
         );
+        gradient.addColorStopRGBA(
+          1, // 终点偏移量
+          this._colorArray[0],
+          this._colorArray[1],
+          this._colorArray[2],
+          alpha_e * this._alpha,
+        );
+        cr.setSource(gradient);
+        // cr.setSourceRGBA(
+        //   this._colorArray[0],
+        //   this._colorArray[1],
+        //   this._colorArray[2],
+        //   alpha_s * this._alpha,
+        // );
 
         // 计算控制点（公式参考 Catmull-Rom 到 Cubic Bezier 的转换）
-        const cp1x = p1.x + (p2.x - p0.x) / 6;
-        const cp1y = p1.y + (p2.y - p0.y) / 6;
-        const cp2x = p2.x - (p3.x - p1.x) / 6;
-        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
 
-        cr.moveTo(p1.x, p1.y);
-        cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+        cr.newPath();
+        cr.moveTo(p1[0], p1[1]);
+        cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
         cr.stroke();
       }
     }
 
     // 过滤掉已超出淡出时间的轨迹点，避免数组无限增长
-    this._points = this._points.filter((p) => now - p.time < this._fadeLength);
+    this._points = this._points.filter((p) => now - p[2] < this._fadeLength);
   }
 }
