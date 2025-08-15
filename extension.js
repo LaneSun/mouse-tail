@@ -56,9 +56,11 @@ export default class MouseTrailExtension extends Extension {
     this._lineWidth = this._settings.get_int("line-width");
     this._colorArray = this._settings.get_value("color").deep_unpack();
     this._alpha = this._settings.get_double("alpha");
+    this._renderMode = this._settings.get_string("render-mode");
 
     // 初始化轨迹点数组
     this._points = [];
+    this._prev_len = 0;
 
     // 创建自定义绘图层（全屏覆盖，非交互型）
     this._cont = new Clutter.Actor();
@@ -74,9 +76,8 @@ export default class MouseTrailExtension extends Extension {
 
     // 设置定时器，定时调用 queue_repaint 保证轨迹淡出效果平滑更新
     this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
-      if (this._drawingLayer) {
-        this._drawingLayer.queue_repaint();
-      }
+      if (this._points.length >= 3 || this._prev_len >= 3)
+        this._drawingLayer?.queue_repaint();
       return GLib.SOURCE_CONTINUE;
     });
 
@@ -100,6 +101,11 @@ export default class MouseTrailExtension extends Extension {
     this._settingsConnections.push(
       this._settings.connect("changed::alpha", () => {
         this._alpha = this._settings.get_double("alpha");
+      }),
+    );
+    this._settingsConnections.push(
+      this._settings.connect("changed::render-mode", () => {
+        this._renderMode = this._settings.get_string("render-mode");
       }),
     );
   }
@@ -175,9 +181,6 @@ export default class MouseTrailExtension extends Extension {
     // 记录当前鼠标位置和时间戳
     this._points.push([x, y, Date.now()]);
     noise_cancel(this._points, this._lineWidth);
-    if (this._drawingLayer) {
-      this._drawingLayer.queue_repaint();
-    }
   }
 
   /**
@@ -187,82 +190,181 @@ export default class MouseTrailExtension extends Extension {
    * @param {Cairo.Context} cr
    */
   _onRepaint(cr) {
+    const pts = this._points;
     const now = Date.now();
+    if (pts.length >= 3) {
+      const mode = this._renderMode;
+      const color = this._colorArray;
+      const alpha = this._alpha;
+      const size = this._lineWidth;
+      cr.setLineWidth(size);
 
-    cr.setLineWidth(this._lineWidth);
+      // 设定裁剪框以提升性能
+      const x_min = pts.reduce((a, p) => Math.min(a, p[0]), Infinity) - size;
+      const x_max = pts.reduce((a, p) => Math.max(a, p[0]), 0) + size;
+      const y_min = pts.reduce((a, p) => Math.min(a, p[1]), Infinity) - size;
+      const y_max = pts.reduce((a, p) => Math.max(a, p[1]), 0) + size;
+      this._drawingLayer.set_clip(x_min, y_min, x_max - x_min, y_max - y_min);
 
-    // 遍历轨迹点，依次两两连接绘制线段
-    if (this._points.length >= 3) {
-      // 构建平滑路径
-      const pts = this._points;
+      if (mode !== "precise") {
+        const splits = split_line(pts);
+        for (let it = 0; it < splits.length; it++) {
+          const [sidx, eidx] = splits[it];
+          const p1 = pts[sidx];
+          const p2 = pts[eidx];
+          const i3 = (splits[it + 1] ?? splits[it])[1];
+          const p3 = pts[i3];
 
-      // 使用 Catmull-Rom 插值转换为贝塞尔曲线
-      for (let i = 0; i < pts.length - 2; i++) {
-        const p0 = i === 0 ? pts[i] : pts[i - 1];
-        const p1 = pts[i];
-        const p2 = [...pts[i + 1]];
-        const p3 = i + 2 < pts.length ? pts[i + 2] : p2;
-        if (i === pts.length - 3) {
-          p2[0] = Math.round((p1[0] + p2[0] + p3[0]) / 3);
-          p2[1] = Math.round((p1[1] + p2[1] + p3[1]) / 3);
-          p2[2] = Math.round((p1[2] + p2[2] + p3[2]) / 3);
+          const alpha_s = Math.min(
+            sidx === 0 ? 0 : 1,
+            ((now - p1[2]) / this._fadeLength) * 2,
+            1 - (now - p1[2]) / this._fadeLength,
+            ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5 /
+              (p2[2] - p1[2]) /
+              ((600 * size) / 1000),
+          );
+          const alpha_e = Math.min(
+            ((now - p2[2]) / this._fadeLength) * 2,
+            it === splits.length - 1 ? 0 : 1,
+            1 - (now - p2[2]) / this._fadeLength,
+            ((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2) ** 0.5 /
+              (p3[2] - p2[2]) /
+              ((600 * size) / 1000),
+          );
+
+          const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
+          gradient.addColorStopRGBA(
+            0,
+            color[0],
+            color[1],
+            color[2],
+            alpha_s * alpha,
+          );
+          gradient.addColorStopRGBA(
+            1,
+            color[0],
+            color[1],
+            color[2],
+            alpha_e * alpha,
+          );
+          cr.setSource(gradient);
+          cr.newPath();
+          cr.moveTo(p1[0], p1[1]);
+          if (mode === "fast") {
+            for (let i = sidx; i < eidx; i++) {
+              cr.lineTo(pts[i + 1][0], pts[i + 1][1]);
+            }
+          } else {
+            for (let i = sidx; i < eidx; i++) {
+              const p0 = i === 0 ? pts[i] : pts[i - 1];
+              const p1 = pts[i];
+              const p2 = [...pts[i + 1]];
+              const p3 = i + 2 < pts.length ? pts[i + 2] : p2;
+              if (i === pts.length - 3) {
+                p2[0] = Math.round((p1[0] + p2[0] + p3[0]) / 3);
+                p2[1] = Math.round((p1[1] + p2[1] + p3[1]) / 3);
+                p2[2] = Math.round((p1[2] + p2[2] + p3[2]) / 3);
+              }
+              const cp1x = p1[0] + (p2[0] - p0[0]) * 0.167;
+              const cp1y = p1[1] + (p2[1] - p0[1]) * 0.167;
+              const cp2x = p2[0] - (p3[0] - p1[0]) * 0.167;
+              const cp2y = p2[1] - (p3[1] - p1[1]) * 0.167;
+
+              cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+            }
+          }
+          cr.stroke();
         }
+      } else {
+        for (let i = 0; i < pts.length - 2; i++) {
+          const p0 = i === 0 ? pts[i] : pts[i - 1];
+          const p1 = pts[i];
+          const p2 = [...pts[i + 1]];
+          const p3 = i + 2 < pts.length ? pts[i + 2] : p2;
+          if (i === pts.length - 3) {
+            p2[0] = Math.round((p1[0] + p2[0] + p3[0]) / 3);
+            p2[1] = Math.round((p1[1] + p2[1] + p3[1]) / 3);
+            p2[2] = Math.round((p1[2] + p2[2] + p3[2]) / 3);
+          }
 
-        const alpha_s = Math.min(
-          ((now - p1[2]) / this._fadeLength) * 2,
-          1 - (now - p1[2]) / this._fadeLength,
-          ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5 /
-            (p2[2] - p1[2]) /
-            ((600 * this._lineWidth) / 1000),
-        );
-        const alpha_e =
-          i === pts.length - 3
-            ? 0
-            : Math.min(
-                ((now - p2[2]) / this._fadeLength) * 2,
-                1 - (now - p2[2]) / this._fadeLength,
-                ((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2) ** 0.5 /
-                  (p3[2] - p2[2]) /
-                  ((600 * this._lineWidth) / 1000),
-              );
+          const alpha_s = Math.min(
+            ((now - p1[2]) / this._fadeLength) * 2,
+            1 - (now - p1[2]) / this._fadeLength,
+            ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5 /
+              (p2[2] - p1[2]) /
+              ((600 * size) / 1000),
+          );
+          const alpha_e =
+            i === pts.length - 3
+              ? 0
+              : Math.min(
+                  ((now - p2[2]) / this._fadeLength) * 2,
+                  1 - (now - p2[2]) / this._fadeLength,
+                  ((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2) ** 0.5 /
+                    (p3[2] - p2[2]) /
+                    ((600 * size) / 1000),
+                );
 
-        const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
-        gradient.addColorStopRGBA(
-          0, // 起点偏移量
-          this._colorArray[0],
-          this._colorArray[1],
-          this._colorArray[2],
-          alpha_s * this._alpha,
-        );
-        gradient.addColorStopRGBA(
-          1, // 终点偏移量
-          this._colorArray[0],
-          this._colorArray[1],
-          this._colorArray[2],
-          alpha_e * this._alpha,
-        );
-        cr.setSource(gradient);
-        // cr.setSourceRGBA(
-        //   this._colorArray[0],
-        //   this._colorArray[1],
-        //   this._colorArray[2],
-        //   alpha_s * this._alpha,
-        // );
+          const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
+          gradient.addColorStopRGBA(
+            0,
+            color[0],
+            color[1],
+            color[2],
+            alpha_s * alpha,
+          );
+          gradient.addColorStopRGBA(
+            1,
+            color[0],
+            color[1],
+            color[2],
+            alpha_e * alpha,
+          );
+          cr.setSource(gradient);
 
-        // 计算控制点（公式参考 Catmull-Rom 到 Cubic Bezier 的转换）
-        const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-        const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-        const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-        const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+          const cp1x = p1[0] + (p2[0] - p0[0]) * 0.167;
+          const cp1y = p1[1] + (p2[1] - p0[1]) * 0.167;
+          const cp2x = p2[0] - (p3[0] - p1[0]) * 0.167;
+          const cp2y = p2[1] - (p3[1] - p1[1]) * 0.167;
 
-        cr.newPath();
-        cr.moveTo(p1[0], p1[1]);
-        cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
-        cr.stroke();
+          cr.newPath();
+          cr.moveTo(p1[0], p1[1]);
+          cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+          cr.stroke();
+        }
       }
     }
 
     // 过滤掉已超出淡出时间的轨迹点，避免数组无限增长
-    this._points = this._points.filter((p) => now - p[2] < this._fadeLength);
+    this._prev_len = pts.length;
+    this._points = pts.filter((p) => now - p[2] < this._fadeLength);
   }
 }
+
+// 将曲线按照线段的方向向量进行分段，以优化渐变的渲染
+const split_line = (pts) => {
+  let splits = [];
+  let pidx = 0;
+  let dir = null;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[i + 1];
+    const cdir = Math.atan2(y2 - y1, x2 - x1);
+    const delta =
+      dir === null
+        ? 0
+        : Math.min(
+            Math.abs(cdir - dir),
+            Math.abs(cdir - dir + Math.PI * 2),
+            Math.abs(cdir - dir - Math.PI * 2),
+          );
+    if (delta > Math.PI / 4) {
+      splits.push([pidx, i]);
+      pidx = i;
+      dir = cdir;
+    }
+    if (dir === null) dir = cdir;
+  }
+  splits.push([pidx, pts.length - 1]);
+  return splits;
+};

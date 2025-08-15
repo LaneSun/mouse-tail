@@ -86,9 +86,7 @@ export default class MouseTailPreferences extends ExtensionPreferences {
     // Alpha (transparency) setting
     const alphaRow = new Adw.ActionRow({
       title: _("Trail Transparency"),
-      subtitle: _(
-        "Opacity level of the mouse trail (0 = transparent, 1 = opaque)",
-      ),
+      subtitle: _("Opacity level of the mouse trail"),
     });
 
     const alphaScale = new Gtk.Scale({
@@ -113,6 +111,34 @@ export default class MouseTailPreferences extends ExtensionPreferences {
     alphaRow.add_suffix(alphaScale);
     group.add(alphaRow);
 
+    // Render Mode setting
+    const renderModeRow = new Adw.ComboRow({
+      title: _("Render Mode"),
+      subtitle: _("Choose between precise smooth curves or fast simple lines"),
+    });
+
+    const renderModeModel = new Gtk.StringList();
+    renderModeModel.append(_("Precise"));
+    renderModeModel.append(_("Balance"));
+    renderModeModel.append(_("Fast"));
+    renderModeRow.set_model(renderModeModel);
+
+    const currentRenderMode = settings.get_string("render-mode");
+    let selectedIndex = 0;
+    if (currentRenderMode === "balance") selectedIndex = 1;
+    else if (currentRenderMode === "fast") selectedIndex = 2;
+    renderModeRow.set_selected(selectedIndex);
+
+    renderModeRow.connect("notify::selected", () => {
+      const selected = renderModeRow.get_selected();
+      let mode = "precise";
+      if (selected === 1) mode = "balance";
+      else if (selected === 2) mode = "fast";
+      settings.set_string("render-mode", mode);
+    });
+
+    group.add(renderModeRow);
+
     // Reset button
     const resetGroup = new Adw.PreferencesGroup();
     page.add(resetGroup);
@@ -134,12 +160,14 @@ export default class MouseTailPreferences extends ExtensionPreferences {
       settings.set_int("line-width", 8);
       settings.set_value("color", new GLib.Variant("ad", [1.0, 1.0, 1.0]));
       settings.set_double("alpha", 0.5);
+      settings.set_string("render-mode", "precise");
 
       // Update UI
       fadeDurationRow.set_value(200);
       lineWidthRow.set_value(8);
       colorButton.set_rgba(this._arrayToRgba([1.0, 1.0, 1.0]));
       alphaScale.set_value(0.5);
+      renderModeRow.set_selected(0);
     });
 
     resetRow.add_suffix(resetButton);
