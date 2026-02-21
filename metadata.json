@@ -4,7 +4,7 @@
   "gettext-domain": "gnome-shell-extensions",
   "settings-schema": "org.gnome.shell.extensions.mouse-tail",
   "uuid": "mouse-tail@lanesun.anlbrain.com",
-  "shell-version": ["47", "48"],
+  "shell-version": ["47", "48", "49"],
   "url": "https://github.com/LaneSun/mouse-tail",
   "donations": {
     "kofi": "lanesun45182"
