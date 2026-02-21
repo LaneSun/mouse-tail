@@ -6,6 +6,7 @@ import GObject from "gi://GObject";
 
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
+import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
 // 自定义绘图层，继承自 St.DrawingArea
 const MouseTrailLayer = GObject.registerClass(
@@ -67,8 +68,13 @@ export default class MouseTrailExtension extends Extension {
     this._drawingLayer = new MouseTrailLayer(this);
 
     // 将绘图层添加到 chrome 层，确保始终位于最上层
-    setTimeout(() => global.top_window_group.add_child(this._cont), 5000);
     this._cont.add_child(this._drawingLayer);
+    Main.layoutManager.addTopChrome(this._cont);
+
+    // 当总览界面显示时，将绘图层重新提升至 Z 轴顶部，使轨迹效果在总览中同样可见
+    this._overviewShowingId = Main.overview.connect("showing", () => {
+      Main.layoutManager.uiGroup.set_child_above_sibling(this._cont, null);
+    });
 
     // 捕获全局鼠标移动事件，记录鼠标坐标及时间戳
     this._pointerWatcher = getPointerWatcher();
@@ -133,10 +139,16 @@ export default class MouseTrailExtension extends Extension {
       this._timeoutId = null;
     }
 
+    // 断开总览界面信号监听
+    if (this._overviewShowingId) {
+      Main.overview.disconnect(this._overviewShowingId);
+      this._overviewShowingId = null;
+    }
+
     // 移除并销毁绘图层
     if (this._drawingLayer) {
       this._cont.remove_child(this._drawingLayer);
-      global.top_window_group.remove_child(this._cont);
+      Main.layoutManager.removeChrome(this._cont);
       this._drawingLayer.destroy();
       this._cont.destroy();
       this._drawingLayer = null;
