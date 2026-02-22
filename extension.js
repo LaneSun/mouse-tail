@@ -8,6 +8,17 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
+// 不可拾取的容器层：覆写 vfunc_pick 以在任何拾取模式下均不绘制自身，
+// 防止在 PickMode.ALL 下因有子节点而被 Clutter 当作命中目标。
+const MouseTrailContainer = GObject.registerClass(
+  {
+    GTypeName: "MouseTrailContainer",
+  },
+  class MouseTrailContainer extends Clutter.Actor {
+    vfunc_pick(_pickContext) {}
+  },
+);
+
 // 自定义绘图层，继承自 St.DrawingArea
 const MouseTrailLayer = GObject.registerClass(
   {
@@ -38,6 +49,11 @@ const MouseTrailLayer = GObject.registerClass(
       }
     }
 
+    // 覆写 pick 方法：不在拾取渲染中绘制自身，
+    // 使该层对所有命中检测（包括 PickMode.ALL）完全透明，
+    // 确保总览中的 DnD 窗口拖移不受干扰。
+    vfunc_pick(_pickContext) {}
+
     // 重写绘制方法：获取 Cairo 上下文，调用扩展提供的重绘回调，并释放上下文资源
     vfunc_repaint() {
       const cr = this.get_context();
@@ -64,16 +80,27 @@ export default class MouseTrailExtension extends Extension {
     this._prev_len = 0;
 
     // 创建自定义绘图层（全屏覆盖，非交互型）
-    this._cont = new Clutter.Actor();
+    this._cont = new MouseTrailContainer();
     this._drawingLayer = new MouseTrailLayer(this);
 
-    // 将绘图层添加到 chrome 层，确保始终位于最上层
-    this._cont.add_child(this._drawingLayer);
-    Main.layoutManager.addTopChrome(this._cont);
+    // 将 _cont 的尺寸绑定到 global.stage，确保全屏覆盖
+    this._cont.add_constraint(
+      new Clutter.BindConstraint({
+        coordinate: Clutter.BindCoordinate.SIZE,
+        source: global.stage,
+      }),
+    );
 
-    // 当总览界面显示时，将绘图层重新提升至 Z 轴顶部，使轨迹效果在总览中同样可见
+    // 直接挂载到 global.stage（uiGroup 的父级），
+    // 避免 addTopChrome 的 chrome 管理在总览模式下隐藏绘图层，
+    // 同时不干扰 uiGroup 内部的布局与 DnD 拾取逻辑。
+    this._cont.add_child(this._drawingLayer);
+    global.stage.add_child(this._cont);
+
+    // 总览显示时将绘图层提升至 stage 顶部（高于 overview 所在的 uiGroup）。
+    // DnD 使用 PickMode.REACTIVE 拾取放置目标，非 reactive 的绘图层不会拦截拖拽。
     this._overviewShowingId = Main.overview.connect("showing", () => {
-      Main.layoutManager.uiGroup.set_child_above_sibling(this._cont, null);
+      global.stage.set_child_above_sibling(this._cont, null);
     });
 
     // 捕获全局鼠标移动事件，记录鼠标坐标及时间戳
@@ -148,7 +175,7 @@ export default class MouseTrailExtension extends Extension {
     // 移除并销毁绘图层
     if (this._drawingLayer) {
       this._cont.remove_child(this._drawingLayer);
-      Main.layoutManager.removeChrome(this._cont);
+      global.stage.remove_child(this._cont);
       this._drawingLayer.destroy();
       this._cont.destroy();
       this._drawingLayer = null;
