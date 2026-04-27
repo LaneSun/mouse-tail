@@ -83,19 +83,19 @@ export default class MouseTrailExtension extends Extension {
     this._cont = new MouseTrailContainer();
     this._drawingLayer = new MouseTrailLayer(this);
 
-    // 将 _cont 的尺寸绑定到 global.stage，确保全屏覆盖
-    this._cont.add_constraint(
-      new Clutter.BindConstraint({
-        coordinate: Clutter.BindCoordinate.SIZE,
-        source: global.stage,
-      }),
-    );
-
     // 直接挂载到 global.stage（uiGroup 的父级），
     // 避免 addTopChrome 的 chrome 管理在总览模式下隐藏绘图层，
     // 同时不干扰 uiGroup 内部的布局与 DnD 拾取逻辑。
     this._cont.add_child(this._drawingLayer);
     global.stage.add_child(this._cont);
+
+    // 更新容器位置和大小以覆盖所有显示器
+    this._updateMonitorCoverage();
+
+    // 监听显示器配置变化（如连接/断开外接显示器）
+    this._monitorsChangedId = Main.layoutManager.connect("monitors-changed", () => {
+      this._updateMonitorCoverage();
+    });
 
     // 总览显示时将绘图层提升至 stage 顶部（高于 overview 所在的 uiGroup）。
     // DnD 使用 PickMode.REACTIVE 拾取放置目标，非 reactive 的绘图层不会拦截拖拽。
@@ -143,6 +143,30 @@ export default class MouseTrailExtension extends Extension {
     );
   }
 
+  _updateMonitorCoverage() {
+    const monitors = Main.layoutManager.monitors;
+    if (monitors.length === 0) {
+      this._cont.set_position(0, 0);
+      this._cont.set_size(global.stage.width, global.stage.height);
+      return;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const monitor of monitors) {
+      minX = Math.min(minX, monitor.x);
+      minY = Math.min(minY, monitor.y);
+      maxX = Math.max(maxX, monitor.x + monitor.width);
+      maxY = Math.max(maxY, monitor.y + monitor.height);
+    }
+
+    this._cont.set_position(minX, minY);
+    this._cont.set_size(maxX - minX, maxY - minY);
+  }
+
   update_pointer_watcher() {
     if (this._drawIntervalWatcher) {
       this._pointerWatcher._removeWatch(this._drawIntervalWatcher);
@@ -170,6 +194,12 @@ export default class MouseTrailExtension extends Extension {
     if (this._overviewShowingId) {
       Main.overview.disconnect(this._overviewShowingId);
       this._overviewShowingId = null;
+    }
+
+    // 断开显示器配置变化信号监听
+    if (this._monitorsChangedId) {
+      Main.layoutManager.disconnect(this._monitorsChangedId);
+      this._monitorsChangedId = null;
     }
 
     // 移除并销毁绘图层
