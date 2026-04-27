@@ -1,0 +1,14 @@
+# Build artifacts
+mouse-tail.zip
+
+# Editor
+*~
+*.bak
+*.swp
+
+# OS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
