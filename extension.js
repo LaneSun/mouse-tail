@@ -294,50 +294,18 @@ export default class MouseTrailExtension extends Extension {
       this._drawingLayer.set_clip(x_min, y_min, x_max - x_min, y_max - y_min);
 
       if (mode !== "precise") {
-        const splits = split_line(pts);
-        for (let it = 0; it < splits.length; it++) {
-          const [sidx, eidx] = splits[it];
-          const p1 = pts[sidx];
-          const p2 = pts[eidx];
-          const i3 = (splits[it + 1] ?? splits[it])[1];
-          const p3 = pts[i3];
-
-          const alpha_s = Math.min(
-            sidx === 0 ? 0 : 1,
-            ((now - p1[2]) / this._fadeLength) * 2,
-            1 - (now - p1[2]) / this._fadeLength,
-            this._getSpeedFactor(p1, p2, size),
-          );
-          const alpha_e = Math.min(
-            ((now - p2[2]) / this._fadeLength) * 2,
-            it === splits.length - 1 ? 0 : 1,
-            1 - (now - p2[2]) / this._fadeLength,
-            this._getSpeedFactor(p2, p3, size),
-          );
-
-          const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
-          gradient.addColorStopRGBA(
-            0,
-            color[0],
-            color[1],
-            color[2],
-            alpha_s * alpha,
-          );
-          gradient.addColorStopRGBA(
-            1,
-            color[0],
-            color[1],
-            color[2],
-            alpha_e * alpha,
-          );
-          cr.setSource(gradient);
-          cr.newPath();
-          cr.moveTo(p1[0], p1[1]);
-          if (mode === "fast") {
-            for (let i = sidx; i < eidx; i++) {
-              cr.lineTo(pts[i + 1][0], pts[i + 1][1]);
-            }
-          } else {
+        cr.setSourceRGBA(color[0], color[1], color[2], alpha);
+        cr.newPath();
+        if (mode === "fast") {
+          cr.moveTo(pts[0][0], pts[0][1]);
+          for (let i = 1; i < pts.length; i++) {
+            cr.lineTo(pts[i][0], pts[i][1]);
+          }
+        } else {
+          const splits = split_line(pts);
+          for (let it = 0; it < splits.length; it++) {
+            const [sidx, eidx] = splits[it];
+            cr.moveTo(pts[sidx][0], pts[sidx][1]);
             for (let i = sidx; i < eidx; i++) {
               const p0 = i === 0 ? pts[i] : pts[i - 1];
               const p1 = pts[i];
@@ -356,8 +324,8 @@ export default class MouseTrailExtension extends Extension {
               cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
             }
           }
-          cr.stroke();
         }
+        cr.stroke();
       } else {
         for (let i = 0; i < pts.length - 2; i++) {
           const p0 = i === 0 ? pts[i] : pts[i - 1];
