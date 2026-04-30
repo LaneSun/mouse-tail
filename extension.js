@@ -359,13 +359,14 @@ export default class MouseTrailExtension extends Extension {
 
     if (mode === "rainbow-fixed") {
       let dist = 0;
-      for (let i = 0; i < pts.length; i++) {
-        if (i > 0) {
-          const dx = pts[i][0] - pts[i - 1][0];
-          const dy = pts[i][1] - pts[i - 1][1];
+      // 从光标位置（数组尾部/最新点）向头部累计，确保光标显示配置的起始颜色
+      for (let i = pts.length - 1; i >= 0; i--) {
+        if (i < pts.length - 1) {
+          const dx = pts[i][0] - pts[i + 1][0];
+          const dy = pts[i][1] - pts[i + 1][1];
           dist += Math.sqrt(dx * dx + dy * dy);
         }
-        colors.push(this._getColorAt(dist));
+        colors[i] = this._getColorAt(dist);
       }
     } else if (mode === "rainbow-ratio") {
       let totalDist = 0;
@@ -375,14 +376,15 @@ export default class MouseTrailExtension extends Extension {
         totalDist += Math.sqrt(dx * dx + dy * dy);
       }
       let dist = 0;
-      for (let i = 0; i < pts.length; i++) {
-        if (i > 0) {
-          const dx = pts[i][0] - pts[i - 1][0];
-          const dy = pts[i][1] - pts[i - 1][1];
+      // 从光标位置向头部累计，光标处 ratio=0（起始颜色）
+      for (let i = pts.length - 1; i >= 0; i--) {
+        if (i < pts.length - 1) {
+          const dx = pts[i][0] - pts[i + 1][0];
+          const dy = pts[i][1] - pts[i + 1][1];
           dist += Math.sqrt(dx * dx + dy * dy);
         }
         const ratio = totalDist > 0 ? dist / totalDist : 0;
-        colors.push(this._getColorAt(ratio));
+        colors[i] = this._getColorAt(ratio);
       }
     }
 

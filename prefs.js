@@ -232,7 +232,6 @@ export default class MouseTailPreferences extends ExtensionPreferences {
       const isSolid = mode === "solid";
 
       colorRow.visible = isSolid;
-      alphaRow.visible = isSolid;
       rainbowBox.visible = !isSolid;
 
       if (!isSolid) {
