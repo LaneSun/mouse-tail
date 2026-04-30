@@ -264,19 +264,34 @@ export default class MouseTrailExtension extends Extension {
       const allowNoParam = isLast && mode === "rainbow-fixed";
       const hasParam = parts.length >= 2 && parts[1].length > 0;
 
+      let length = 0;
       if (hasParam || !allowNoParam) {
-        const param = parseFloat(parts[1]);
-        acc += param;
-        this._rainbowStops.push({ color: [r, g, b], param: acc });
+        length = parseFloat(parts[1]);
+        acc += length;
       } else {
-        this._rainbowStops.push({ color: [r, g, b], param: Infinity });
+        length = Infinity;
       }
+
+      this._rainbowStops.push({ color: [r, g, b], length });
     }
 
     if (mode === "rainbow-ratio" && acc > 0) {
       this._rainbowStops.forEach((s) => {
-        if (s.param !== Infinity) s.param /= acc;
+        if (s.length !== Infinity) s.length /= acc;
       });
+    }
+
+    // 为 fixed 和 ratio 模式计算累计 param（用于 _getColorAt）
+    let acc2 = 0;
+    for (const stop of this._rainbowStops) {
+      acc2 += stop.length;
+      stop.param = stop.length === Infinity ? Infinity : acc2;
+    }
+
+    if (mode === "rainbow-time") {
+      this._rainbowPeriod = acc;
+      // 去掉最后一个虚拟 stop（period 位置的第一个颜色副本）
+      // 保持 stops 为原始配置的颜色，在 _getTimeColor 中处理环形
     }
   }
 
@@ -294,26 +309,48 @@ export default class MouseTrailExtension extends Extension {
 
     let idx = 0;
     for (let i = 0; i < stops.length; i++) {
-      if (stops[i].param <= value) idx = i;
-      else break;
+      if (value < stops[i].param) {
+        idx = i;
+        break;
+      }
+      idx = i + 1;
     }
 
-    if (idx >= stops.length - 1) return stops[stops.length - 1].color;
+    if (idx >= stops.length) return stops[stops.length - 1].color;
 
     const s1 = stops[idx];
-    const s2 = stops[idx + 1];
-    const span = s2.param - s1.param;
-    const t = span > 0 ? (value - s1.param) / span : 0;
+    const s2 = stops[idx + 1] ?? s1;
+    const prevParam = idx === 0 ? 0 : stops[idx - 1].param;
+    const span = s1.param - prevParam;
+    const t = span > 0 ? (value - prevParam) / span : 0;
     return this._lerpColor(s1.color, s2.color, t);
   }
 
   _getTimeColor(elapsed) {
     const stops = this._rainbowStops;
-    if (!stops || stops.length === 0) return [1, 1, 1];
-    const period = stops[stops.length - 1].param;
-    if (!isFinite(period) || period <= 0) return stops[0].color;
-    const mod = elapsed % period;
-    return this._getColorAt(mod);
+    if (!stops || stops.length < 2) return stops?.[0]?.color ?? [1, 1, 1];
+
+    const period = this._rainbowPeriod;
+    if (!period || period <= 0) return stops[0].color;
+
+    const t = elapsed % period;
+
+    // 找到 t 所在的区间
+    let accumulated = 0;
+    let idx = 0;
+    for (let i = 0; i < stops.length; i++) {
+      accumulated += stops[i].length;
+      if (t < accumulated) {
+        idx = i;
+        break;
+      }
+    }
+
+    const prevAccumulated = accumulated - stops[idx].length;
+    const localT = stops[idx].length > 0 ? (t - prevAccumulated) / stops[idx].length : 0;
+
+    const nextIdx = (idx + 1) % stops.length;
+    return this._lerpColor(stops[idx].color, stops[nextIdx].color, localT);
   }
 
   _calculatePointColors(pts) {
