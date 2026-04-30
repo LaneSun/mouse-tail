@@ -58,19 +58,19 @@
     </key>
 
     <key name="rainbow-fixed-config" type="s">
-      <default>"#FF0000 50\n#00FF00 50\n#0000FF"</default>
+      <default>"#FF6B6B 500\n#4ECDC4 500\n#FFE66D"</default>
       <summary>Fixed-Length Rainbow Configuration</summary>
       <description>Configuration for fixed-length rainbow mode. Each line: #RRGGBB distance(px). The last color does not need a distance.</description>
     </key>
 
     <key name="rainbow-ratio-config" type="s">
-      <default>"#FF0000 1\n#00FF00 1\n#0000FF 1"</default>
+      <default>"#FF6B6B 1\n#4ECDC4 1\n#FFE66D 1"</default>
       <summary>Ratio Rainbow Configuration</summary>
       <description>Configuration for ratio rainbow mode. Each line: #RRGGBB ratio(positive number). Values are normalized automatically.</description>
     </key>
 
     <key name="rainbow-time-config" type="s">
-      <default>"#FF0000 500\n#00FF00 500\n#0000FF 500"</default>
+      <default>"#FF6B6B 500\n#4ECDC4 500\n#FFE66D 500"</default>
       <summary>Time-Based Rainbow Configuration</summary>
       <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). All colors must have a time.</description>
     </key>

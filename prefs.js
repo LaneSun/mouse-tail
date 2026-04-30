@@ -295,9 +295,9 @@ export default class MouseTailPreferences extends ExtensionPreferences {
       settings.set_double("alpha", 0.5);
       settings.set_string("render-mode", "precise");
       settings.set_string("color-mode", "solid");
-      settings.set_string("rainbow-fixed-config", "#FF0000 50\n#00FF00 50\n#0000FF");
-      settings.set_string("rainbow-ratio-config", "#FF0000 1\n#00FF00 1\n#0000FF 1");
-      settings.set_string("rainbow-time-config", "#FF0000 500\n#00FF00 500\n#0000FF 500");
+      settings.set_string("rainbow-fixed-config", "#FF6B6B 500\n#4ECDC4 500\n#FFE66D");
+      settings.set_string("rainbow-ratio-config", "#FF6B6B 1\n#4ECDC4 1\n#FFE66D 1");
+      settings.set_string("rainbow-time-config", "#FF6B6B 500\n#4ECDC4 500\n#FFE66D 500");
 
       fadeDurationRow.set_value(200);
       lineWidthRow.set_value(8);

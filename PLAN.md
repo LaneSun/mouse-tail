@@ -75,24 +75,24 @@
 
 ### Fixed-Length Rainbow
 ```
-#FF0000 50
-#00FF00 50
-#0000FF
+#FF6B6B 500
+#4ECDC4 500
+#FFE66D
 ```
 
 ### Ratio Rainbow
 ```
-#FF0000 1
-#00FF00 1
-#0000FF 1
+#FF6B6B 1
+#4ECDC4 1
+#FFE66D 1
 ```
 > Treated as equal thirds after normalization (1/3, 1/3, 1/3).
 
 ### Time-Based Rainbow
 ```
-#FF0000 500
-#00FF00 500
-#0000FF
+#FF6B6B 500
+#4ECDC4 500
+#FFE66D 500
 ```
 
 ---
