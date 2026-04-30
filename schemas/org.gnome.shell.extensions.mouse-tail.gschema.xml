@@ -44,5 +44,35 @@
         <choice value="fast" />
       </choices>
     </key>
+
+    <key name="color-mode" type="s">
+      <default>"solid"</default>
+      <summary>Color Mode</summary>
+      <description>Color mode for the mouse trail: "solid" for single color with fade, "rainbow-fixed" for fixed-length rainbow gradient, "rainbow-ratio" for ratio-based rainbow gradient, or "rainbow-time" for time-based cycling rainbow</description>
+      <choices>
+        <choice value="solid" />
+        <choice value="rainbow-fixed" />
+        <choice value="rainbow-ratio" />
+        <choice value="rainbow-time" />
+      </choices>
+    </key>
+
+    <key name="rainbow-fixed-config" type="s">
+      <default>"#FF0000 50\n#00FF00 50\n#0000FF"</default>
+      <summary>Fixed-Length Rainbow Configuration</summary>
+      <description>Configuration for fixed-length rainbow mode. Each line: #RRGGBB distance(px). The last color does not need a distance.</description>
+    </key>
+
+    <key name="rainbow-ratio-config" type="s">
+      <default>"#FF0000 1\n#00FF00 1\n#0000FF 1"</default>
+      <summary>Ratio Rainbow Configuration</summary>
+      <description>Configuration for ratio rainbow mode. Each line: #RRGGBB ratio(positive number). Values are normalized automatically.</description>
+    </key>
+
+    <key name="rainbow-time-config" type="s">
+      <default>"#FF0000 500\n#00FF00 500\n#0000FF"</default>
+      <summary>Time-Based Rainbow Configuration</summary>
+      <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). The last color does not need a time.</description>
+    </key>
   </schema>
 </schemalist>

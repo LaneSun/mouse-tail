@@ -8,8 +8,6 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
-// 不可拾取的容器层：覆写 vfunc_pick 以在任何拾取模式下均不绘制自身，
-// 防止在 PickMode.ALL 下因有子节点而被 Clutter 当作命中目标。
 const MouseTrailContainer = GObject.registerClass(
   {
     GTypeName: "MouseTrailContainer",
@@ -19,7 +17,6 @@ const MouseTrailContainer = GObject.registerClass(
   },
 );
 
-// 自定义绘图层，继承自 St.DrawingArea
 const MouseTrailLayer = GObject.registerClass(
   {
     GTypeName: "MouseTrailLayer",
@@ -27,15 +24,12 @@ const MouseTrailLayer = GObject.registerClass(
   class MouseTrailLayer extends St.DrawingArea {
     _init(extension) {
       this._extension = extension;
-      // 设置 reactive 为 false，确保此层不拦截鼠标事件
       super._init({ reactive: false });
       this.set_track_hover(false);
       this.set_reactive(false);
-      // 初始时设置尺寸为屏幕大小
       this.set_size(global.stage.width, global.stage.height);
     }
 
-    // 当父容器发生变化时，自动绑定大小
     vfunc_parent_set() {
       this.clear_constraints();
       const parent = this.get_parent();
@@ -49,12 +43,8 @@ const MouseTrailLayer = GObject.registerClass(
       }
     }
 
-    // 覆写 pick 方法：不在拾取渲染中绘制自身，
-    // 使该层对所有命中检测（包括 PickMode.ALL）完全透明，
-    // 确保总览中的 DnD 窗口拖移不受干扰。
     vfunc_pick(_pickContext) {}
 
-    // 重写绘制方法：获取 Cairo 上下文，调用扩展提供的重绘回调，并释放上下文资源
     vfunc_repaint() {
       const cr = this.get_context();
       try {
@@ -67,54 +57,43 @@ const MouseTrailLayer = GObject.registerClass(
 
 export default class MouseTrailExtension extends Extension {
   enable() {
-    // 获取设置
     this._settings = this.getSettings();
     this._fadeLength = this._settings.get_int("fade-duration");
     this._lineWidth = this._settings.get_int("line-width");
     this._colorArray = this._settings.get_value("color").deep_unpack();
     this._alpha = this._settings.get_double("alpha");
     this._renderMode = this._settings.get_string("render-mode");
+    this._colorMode = this._settings.get_string("color-mode");
+    this._parseRainbowConfig();
 
-    // 初始化轨迹点数组
     this._points = [];
     this._prev_len = 0;
 
-    // 创建自定义绘图层（全屏覆盖，非交互型）
     this._cont = new MouseTrailContainer();
     this._drawingLayer = new MouseTrailLayer(this);
 
-    // 直接挂载到 global.stage（uiGroup 的父级），
-    // 避免 addTopChrome 的 chrome 管理在总览模式下隐藏绘图层，
-    // 同时不干扰 uiGroup 内部的布局与 DnD 拾取逻辑。
     this._cont.add_child(this._drawingLayer);
     global.stage.add_child(this._cont);
 
-    // 更新容器位置和大小以覆盖所有显示器
     this._updateMonitorCoverage();
 
-    // 监听显示器配置变化（如连接/断开外接显示器）
     this._monitorsChangedId = Main.layoutManager.connect("monitors-changed", () => {
       this._updateMonitorCoverage();
     });
 
-    // 总览显示时将绘图层提升至 stage 顶部（高于 overview 所在的 uiGroup）。
-    // DnD 使用 PickMode.REACTIVE 拾取放置目标，非 reactive 的绘图层不会拦截拖拽。
     this._overviewShowingId = Main.overview.connect("showing", () => {
       global.stage.set_child_above_sibling(this._cont, null);
     });
 
-    // 捕获全局鼠标移动事件，记录鼠标坐标及时间戳
     this._pointerWatcher = getPointerWatcher();
     this.update_pointer_watcher();
 
-    // 设置定时器，定时调用 queue_repaint 保证轨迹淡出效果平滑更新
     this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
       if (this._points.length >= 3 || this._prev_len >= 3)
         this._drawingLayer?.queue_repaint();
       return GLib.SOURCE_CONTINUE;
     });
 
-    // 监听设置变化，实时更新配置
     this._settingsConnections = [];
     this._settingsConnections.push(
       this._settings.connect("changed::fade-duration", () => {
@@ -139,6 +118,27 @@ export default class MouseTrailExtension extends Extension {
     this._settingsConnections.push(
       this._settings.connect("changed::render-mode", () => {
         this._renderMode = this._settings.get_string("render-mode");
+      }),
+    );
+    this._settingsConnections.push(
+      this._settings.connect("changed::color-mode", () => {
+        this._colorMode = this._settings.get_string("color-mode");
+        this._parseRainbowConfig();
+      }),
+    );
+    this._settingsConnections.push(
+      this._settings.connect("changed::rainbow-fixed-config", () => {
+        if (this._colorMode === "rainbow-fixed") this._parseRainbowConfig();
+      }),
+    );
+    this._settingsConnections.push(
+      this._settings.connect("changed::rainbow-ratio-config", () => {
+        if (this._colorMode === "rainbow-ratio") this._parseRainbowConfig();
+      }),
+    );
+    this._settingsConnections.push(
+      this._settings.connect("changed::rainbow-time-config", () => {
+        if (this._colorMode === "rainbow-time") this._parseRainbowConfig();
       }),
     );
   }
@@ -169,7 +169,6 @@ export default class MouseTrailExtension extends Extension {
     this._monitorOffsetY = minY;
     this._cont.set_position(minX, minY);
     this._cont.set_size(maxX - minX, maxY - minY);
-    // 显示器布局变化时清空旧轨迹，避免坐标偏移导致的绘制错误
     this._points = [];
   }
 
@@ -184,31 +183,26 @@ export default class MouseTrailExtension extends Extension {
   }
 
   disable() {
-    // 断开全局鼠标事件监听
     if (this._drawIntervalWatcher) {
       this._pointerWatcher._removeWatch(this._drawIntervalWatcher);
       this._drawIntervalWatcher = null;
     }
 
-    // 移除定时器
     if (this._timeoutId) {
       GLib.Source.remove(this._timeoutId);
       this._timeoutId = null;
     }
 
-    // 断开总览界面信号监听
     if (this._overviewShowingId) {
       Main.overview.disconnect(this._overviewShowingId);
       this._overviewShowingId = null;
     }
 
-    // 断开显示器配置变化信号监听
     if (this._monitorsChangedId) {
       Main.layoutManager.disconnect(this._monitorsChangedId);
       this._monitorsChangedId = null;
     }
 
-    // 移除并销毁绘图层
     if (this._drawingLayer) {
       this._cont.remove_child(this._drawingLayer);
       global.stage.remove_child(this._cont);
@@ -218,10 +212,8 @@ export default class MouseTrailExtension extends Extension {
       this._cont = null;
     }
 
-    // 清空轨迹点数据
     this._points = [];
 
-    // 断开设置监听
     if (this._settingsConnections) {
       this._settingsConnections.forEach((connection) => {
         if (this._settings) {
@@ -231,13 +223,9 @@ export default class MouseTrailExtension extends Extension {
       this._settingsConnections = null;
     }
 
-    // 清理设置
     this._settings = null;
   }
 
-  /**
-   * 安全计算速度因子，避免除以零
-   */
   _getSpeedFactor(p1, p2, size) {
     const dt = p2[2] - p1[2];
     if (dt <= 0) return Infinity;
@@ -245,11 +233,119 @@ export default class MouseTrailExtension extends Extension {
     return dist / dt / ((600 * size) / 1000);
   }
 
-  /**
-   * 捕获全局鼠标移动事件的回调
-   */
+  _parseRainbowConfig() {
+    const mode = this._colorMode;
+    if (mode === "solid") {
+      this._rainbowStops = null;
+      return;
+    }
+
+    const key = `rainbow-${mode.replace("rainbow-", "")}-config`;
+    const text = this._settings.get_string(key);
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
+    this._rainbowStops = [];
+    let acc = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/\s+/);
+      const hex = parts[0];
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+      if (i < lines.length - 1) {
+        const param = parseFloat(parts[1]);
+        acc += param;
+        this._rainbowStops.push({ color: [r, g, b], param: acc });
+      } else {
+        this._rainbowStops.push({ color: [r, g, b], param: Infinity });
+      }
+    }
+
+    if (mode === "rainbow-ratio" && acc > 0) {
+      this._rainbowStops.forEach((s) => {
+        if (s.param !== Infinity) s.param /= acc;
+      });
+    }
+  }
+
+  _lerpColor(c1, c2, t) {
+    return [
+      c1[0] + (c2[0] - c1[0]) * t,
+      c1[1] + (c2[1] - c1[1]) * t,
+      c1[2] + (c2[2] - c1[2]) * t,
+    ];
+  }
+
+  _getColorAt(value) {
+    const stops = this._rainbowStops;
+    if (!stops || stops.length === 0) return [1, 1, 1];
+
+    let idx = 0;
+    for (let i = 0; i < stops.length; i++) {
+      if (stops[i].param <= value) idx = i;
+      else break;
+    }
+
+    if (idx >= stops.length - 1) return stops[stops.length - 1].color;
+
+    const s1 = stops[idx];
+    const s2 = stops[idx + 1];
+    const span = s2.param - s1.param;
+    const t = span > 0 ? (value - s1.param) / span : 0;
+    return this._lerpColor(s1.color, s2.color, t);
+  }
+
+  _getTimeColor(elapsed) {
+    const stops = this._rainbowStops;
+    if (!stops || stops.length === 0) return [1, 1, 1];
+    const period = stops[stops.length - 1].param;
+    if (!isFinite(period) || period <= 0) return stops[0].color;
+    const mod = elapsed % period;
+    return this._getColorAt(mod);
+  }
+
+  _calculatePointColors(pts) {
+    const colors = [];
+    const mode = this._colorMode;
+
+    if (mode === "rainbow-fixed") {
+      let dist = 0;
+      for (let i = 0; i < pts.length; i++) {
+        if (i > 0) {
+          const dx = pts[i][0] - pts[i - 1][0];
+          const dy = pts[i][1] - pts[i - 1][1];
+          dist += Math.sqrt(dx * dx + dy * dy);
+        }
+        colors.push(this._getColorAt(dist));
+      }
+    } else if (mode === "rainbow-ratio") {
+      let totalDist = 0;
+      for (let i = 1; i < pts.length; i++) {
+        const dx = pts[i][0] - pts[i - 1][0];
+        const dy = pts[i][1] - pts[i - 1][1];
+        totalDist += Math.sqrt(dx * dx + dy * dy);
+      }
+      let dist = 0;
+      for (let i = 0; i < pts.length; i++) {
+        if (i > 0) {
+          const dx = pts[i][0] - pts[i - 1][0];
+          const dy = pts[i][1] - pts[i - 1][1];
+          dist += Math.sqrt(dx * dx + dy * dy);
+        }
+        const ratio = totalDist > 0 ? dist / totalDist : 0;
+        colors.push(this._getColorAt(ratio));
+      }
+    }
+
+    return colors;
+  }
+
   _onCapturedEvent(x, y) {
-    // 噪点消除，用于过滤间距小于1.5倍线条宽度的点
     function noise_cancel(points, width) {
       if (points.length <= 2) return points;
       const next = points.at(-1);
@@ -263,35 +359,58 @@ export default class MouseTrailExtension extends Extension {
         cur[2] = Math.round((next[2] + prev[2] + cur[2]) / 3);
       }
     }
-    // 记录当前鼠标位置（转换为相对于容器的局部坐标）和时间戳
+
     const offsetX = this._monitorOffsetX ?? 0;
     const offsetY = this._monitorOffsetY ?? 0;
-    this._points.push([x - offsetX, y - offsetY, Date.now()]);
+
+    if (this._colorMode === "rainbow-time") {
+      if (this._points.length === 0) {
+        this._trailStartTime = Date.now();
+      }
+      const elapsed = Date.now() - this._trailStartTime;
+      const [r, g, b] = this._getTimeColor(elapsed);
+      this._points.push([x - offsetX, y - offsetY, Date.now(), r, g, b]);
+    } else {
+      this._points.push([x - offsetX, y - offsetY, Date.now()]);
+    }
+
     noise_cancel(this._points, this._lineWidth);
   }
 
-  /**
-   * 绘图层重绘回调，利用 Cairo 绘制鼠标轨迹（两两连接）
-   * 旧的轨迹点会根据存活时间计算透明度，达到淡出效果。
-   *
-   * @param {Cairo.Context} cr
-   */
   _onRepaint(cr) {
     const pts = this._points;
     const now = Date.now();
     if (pts.length >= 3) {
       const mode = this._renderMode;
+      const colorMode = this._colorMode;
       const color = this._colorArray;
       const alpha = this._alpha;
       const size = this._lineWidth;
       cr.setLineWidth(size);
 
-      // 设定裁剪框以提升性能
       const x_min = pts.reduce((a, p) => Math.min(a, p[0]), Infinity) - size;
       const x_max = pts.reduce((a, p) => Math.max(a, p[0]), 0) + size;
       const y_min = pts.reduce((a, p) => Math.min(a, p[1]), Infinity) - size;
       const y_max = pts.reduce((a, p) => Math.max(a, p[1]), 0) + size;
       this._drawingLayer.set_clip(x_min, y_min, x_max - x_min, y_max - y_min);
+
+      const getColors = (idx1, idx2) => {
+        if (colorMode === "solid") return [color, color];
+        if (colorMode === "rainbow-time") {
+          return [
+            [pts[idx1][3], pts[idx1][4], pts[idx1][5]],
+            [pts[idx2][3], pts[idx2][4], pts[idx2][5]],
+          ];
+        }
+        // rainbow-fixed or rainbow-ratio: use pre-calculated colors
+        return [this._pointColors[idx1], this._pointColors[idx2]];
+      };
+
+      let pointColors = null;
+      if (colorMode === "rainbow-fixed" || colorMode === "rainbow-ratio") {
+        pointColors = this._calculatePointColors(pts);
+        this._pointColors = pointColors;
+      }
 
       if (mode !== "precise") {
         const splits = split_line(pts);
@@ -315,21 +434,10 @@ export default class MouseTrailExtension extends Extension {
             this._getSpeedFactor(p2, p3, size),
           );
 
+          const [c1, c2] = getColors(sidx, eidx);
           const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
-          gradient.addColorStopRGBA(
-            0,
-            color[0],
-            color[1],
-            color[2],
-            alpha_s * alpha,
-          );
-          gradient.addColorStopRGBA(
-            1,
-            color[0],
-            color[1],
-            color[2],
-            alpha_e * alpha,
-          );
+          gradient.addColorStopRGBA(0, c1[0], c1[1], c1[2], alpha_s * alpha);
+          gradient.addColorStopRGBA(1, c2[0], c2[1], c2[2], alpha_e * alpha);
           cr.setSource(gradient);
           cr.newPath();
           cr.moveTo(p1[0], p1[1]);
@@ -352,7 +460,6 @@ export default class MouseTrailExtension extends Extension {
               const cp1y = p1[1] + (p2[1] - p0[1]) * 0.167;
               const cp2x = p2[0] - (p3[0] - p1[0]) * 0.167;
               const cp2y = p2[1] - (p3[1] - p1[1]) * 0.167;
-
               cr.curveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
             }
           }
@@ -384,21 +491,10 @@ export default class MouseTrailExtension extends Extension {
                   this._getSpeedFactor(p2, p3, size),
                 );
 
+          const [c1, c2] = getColors(i, i + 1);
           const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
-          gradient.addColorStopRGBA(
-            0,
-            color[0],
-            color[1],
-            color[2],
-            alpha_s * alpha,
-          );
-          gradient.addColorStopRGBA(
-            1,
-            color[0],
-            color[1],
-            color[2],
-            alpha_e * alpha,
-          );
+          gradient.addColorStopRGBA(0, c1[0], c1[1], c1[2], alpha_s * alpha);
+          gradient.addColorStopRGBA(1, c2[0], c2[1], c2[2], alpha_e * alpha);
           cr.setSource(gradient);
 
           const cp1x = p1[0] + (p2[0] - p0[0]) * 0.167;
@@ -414,13 +510,11 @@ export default class MouseTrailExtension extends Extension {
       }
     }
 
-    // 过滤掉已超出淡出时间的轨迹点，避免数组无限增长
     this._prev_len = pts.length;
     this._points = pts.filter((p) => now - p[2] < this._fadeLength);
   }
 }
 
-// 将曲线按照线段的方向向量进行分段，以优化渐变的渲染
 const split_line = (pts) => {
   let splits = [];
   let pidx = 0;
