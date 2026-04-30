@@ -11,24 +11,21 @@ import {
 
 export default class MouseTailPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
-    // Create a preferences page
     const page = new Adw.PreferencesPage({
       title: _("General"),
       icon_name: "preferences-system-symbolic",
     });
     window.add(page);
 
-    // Create a preferences group
     const group = new Adw.PreferencesGroup({
       title: _("Mouse Tail Settings"),
       description: _("Configure the appearance of the mouse tail effect"),
     });
     page.add(group);
 
-    // Get settings
     const settings = this.getSettings("org.gnome.shell.extensions.mouse-tail");
 
-    // Fade Duration setting
+    // Fade Duration
     const fadeDurationRow = new Adw.SpinRow({
       title: _("Fade Duration"),
       subtitle: _("How long the trail takes to fade out (milliseconds)"),
@@ -45,7 +42,7 @@ export default class MouseTailPreferences extends ExtensionPreferences {
     });
     group.add(fadeDurationRow);
 
-    // Line Width setting
+    // Line Width
     const lineWidthRow = new Adw.SpinRow({
       title: _("Line Width"),
       subtitle: _("Thickness of the mouse trail line"),
@@ -62,33 +59,67 @@ export default class MouseTailPreferences extends ExtensionPreferences {
     });
     group.add(lineWidthRow);
 
-    // Color setting
+    // Render Mode
+    const renderModeRow = new Adw.ComboRow({
+      title: _("Render Mode"),
+      subtitle: _("Choose between precise smooth curves or fast simple lines"),
+    });
+    const renderModeModel = new Gtk.StringList();
+    renderModeModel.append(_("Precise"));
+    renderModeModel.append(_("Balance"));
+    renderModeModel.append(_("Fast"));
+    renderModeRow.set_model(renderModeModel);
+    {
+      const mode = settings.get_string("render-mode");
+      renderModeRow.set_selected(
+        mode === "balance" ? 1 : mode === "fast" ? 2 : 0
+      );
+    }
+    renderModeRow.connect("notify::selected", () => {
+      const idx = renderModeRow.get_selected();
+      settings.set_string("render-mode", idx === 1 ? "balance" : idx === 2 ? "fast" : "precise");
+    });
+    group.add(renderModeRow);
+
+    // Color Mode
+    const colorModeRow = new Adw.ComboRow({
+      title: _("Color Mode"),
+      subtitle: _("Choose a color mode for the mouse trail"),
+    });
+    const colorModeModel = new Gtk.StringList();
+    colorModeModel.append(_("Solid"));
+    colorModeModel.append(_("Fixed-Length Rainbow"));
+    colorModeModel.append(_("Ratio Rainbow"));
+    colorModeModel.append(_("Time-Based Rainbow"));
+    colorModeRow.set_model(colorModeModel);
+    {
+      const mode = settings.get_string("color-mode");
+      const idx = ["solid", "rainbow-fixed", "rainbow-ratio", "rainbow-time"].indexOf(mode);
+      colorModeRow.set_selected(idx >= 0 ? idx : 0);
+    }
+    group.add(colorModeRow);
+
+    // Solid color controls
     const colorRow = new Adw.ActionRow({
       title: _("Trail Color"),
       subtitle: _("Color of the mouse trail"),
     });
-
     const colorButton = new Gtk.ColorButton({
       valign: Gtk.Align.CENTER,
       use_alpha: false,
       rgba: this._arrayToRgba(settings.get_value("color").deep_unpack()),
     });
-
     colorButton.connect("color-set", () => {
       const rgba = colorButton.get_rgba();
-      const colorArray = [rgba.red, rgba.green, rgba.blue];
-      settings.set_value("color", new GLib.Variant("ad", colorArray));
+      settings.set_value("color", new GLib.Variant("ad", [rgba.red, rgba.green, rgba.blue]));
     });
-
     colorRow.add_suffix(colorButton);
     group.add(colorRow);
 
-    // Alpha (transparency) setting
     const alphaRow = new Adw.ActionRow({
       title: _("Trail Transparency"),
       subtitle: _("Opacity level of the mouse trail"),
     });
-
     const alphaScale = new Gtk.Scale({
       orientation: Gtk.Orientation.HORIZONTAL,
       valign: Gtk.Align.CENTER,
@@ -101,43 +132,146 @@ export default class MouseTailPreferences extends ExtensionPreferences {
         page_increment: 0.1,
       }),
     });
-
     alphaScale.set_digits(2);
     alphaScale.set_value(settings.get_double("alpha"));
     alphaScale.connect("value-changed", () => {
       settings.set_double("alpha", alphaScale.get_value());
     });
-
     alphaRow.add_suffix(alphaScale);
     group.add(alphaRow);
 
-    // Render Mode setting
-    const renderModeRow = new Adw.ComboRow({
-      title: _("Render Mode"),
-      subtitle: _("Choose between precise smooth curves or fast simple lines"),
+    // Rainbow configuration container
+    const rainbowBox = new Gtk.Box({
+      orientation: Gtk.Orientation.VERTICAL,
+      spacing: 8,
+      margin_top: 8,
+      margin_bottom: 8,
+      margin_start: 12,
+      margin_end: 12,
     });
 
-    const renderModeModel = new Gtk.StringList();
-    renderModeModel.append(_("Precise"));
-    renderModeModel.append(_("Balance"));
-    renderModeModel.append(_("Fast"));
-    renderModeRow.set_model(renderModeModel);
+    const rainbowDescLabel = new Gtk.Label({
+      wrap: true,
+      xalign: 0,
+      css_classes: ["caption"],
+    });
+    rainbowBox.append(rainbowDescLabel);
 
-    const currentRenderMode = settings.get_string("render-mode");
-    let selectedIndex = 0;
-    if (currentRenderMode === "balance") selectedIndex = 1;
-    else if (currentRenderMode === "fast") selectedIndex = 2;
-    renderModeRow.set_selected(selectedIndex);
+    const rainbowTextView = new Gtk.TextView({
+      wrap_mode: Gtk.WrapMode.NONE,
+      monospace: true,
+      top_margin: 8,
+      bottom_margin: 8,
+      left_margin: 8,
+      right_margin: 8,
+    });
+    const scrolledWindow = new Gtk.ScrolledWindow({
+      child: rainbowTextView,
+      vexpand: false,
+      min_content_height: 120,
+      has_frame: true,
+    });
+    rainbowBox.append(scrolledWindow);
 
-    renderModeRow.connect("notify::selected", () => {
-      const selected = renderModeRow.get_selected();
-      let mode = "precise";
-      if (selected === 1) mode = "balance";
-      else if (selected === 2) mode = "fast";
-      settings.set_string("render-mode", mode);
+    const rainbowErrorLabel = new Gtk.Label({
+      wrap: true,
+      xalign: 0,
+      css_classes: ["error"],
+      visible: false,
+    });
+    rainbowBox.append(rainbowErrorLabel);
+    group.add(rainbowBox);
+
+    // Validation
+    const validateRainbowConfig = (text, mode) => {
+      const lines = text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+      if (lines.length < 2) return "At least 2 color stops required.";
+
+      for (let i = 0; i < lines.length; i++) {
+        const parts = lines[i].split(/\s+/);
+        const hex = parts[0];
+        if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+          return `Line ${i + 1}: invalid hex color "${hex}". Use #RRGGBB format.`;
+        }
+        const isLast = i === lines.length - 1;
+        const needsParam = !isLast || mode !== "rainbow-fixed";
+        if (needsParam) {
+          if (parts.length < 2) return `Line ${i + 1}: missing parameter.`;
+          const param = parseFloat(parts[1]);
+          if (isNaN(param) || param <= 0) {
+            return `Line ${i + 1}: parameter must be a positive number.`;
+          }
+        }
+      }
+      return null;
+    };
+
+    const rainbowBuffer = rainbowTextView.get_buffer();
+    rainbowBuffer.connect("changed", () => {
+      const mode = settings.get_string("color-mode");
+      if (mode === "solid") return;
+
+      const text = rainbowBuffer.text;
+      const error = validateRainbowConfig(text, mode);
+      if (error) {
+        rainbowErrorLabel.set_text(error);
+        rainbowErrorLabel.visible = true;
+      } else {
+        rainbowErrorLabel.visible = false;
+        const key = `rainbow-${mode.replace("rainbow-", "")}-config`;
+        settings.set_string(key, text);
+      }
     });
 
-    group.add(renderModeRow);
+    // Update UI based on color mode
+    const updateColorModeUI = () => {
+      const mode = settings.get_string("color-mode");
+      const isSolid = mode === "solid";
+
+      colorRow.visible = isSolid;
+      rainbowBox.visible = !isSolid;
+
+      if (!isSolid) {
+        const key = `rainbow-${mode.replace("rainbow-", "")}-config`;
+        const text = settings.get_string(key);
+        rainbowBuffer.set_text(text, -1);
+
+        if (mode === "rainbow-fixed") {
+          rainbowDescLabel.set_text(
+            "Format per line: #RRGGBB distance(px). The last color does not need a distance.\nExample: red for 50px, then green for 50px, then blue forever."
+          );
+        } else if (mode === "rainbow-ratio") {
+          rainbowDescLabel.set_text(
+            "Format per line: #RRGGBB ratio(positive number). Values are normalized automatically.\nExample: ratios 1, 1, 1 split the trail into three equal parts."
+          );
+        } else if (mode === "rainbow-time") {
+          rainbowDescLabel.set_text(
+            "Format per line: #RRGGBB time(ms). All colors must have a time.\nExample: red for 500ms, then green for 500ms, then blue for 500ms."
+          );
+        }
+
+        // Re-validate
+        const error = validateRainbowConfig(rainbowBuffer.text, mode);
+        if (error) {
+          rainbowErrorLabel.set_text(error);
+          rainbowErrorLabel.visible = true;
+        } else {
+          rainbowErrorLabel.visible = false;
+        }
+      }
+    };
+
+    colorModeRow.connect("notify::selected", () => {
+      const idx = colorModeRow.get_selected();
+      const modes = ["solid", "rainbow-fixed", "rainbow-ratio", "rainbow-time"];
+      settings.set_string("color-mode", modes[idx] ?? "solid");
+      updateColorModeUI();
+    });
+
+    updateColorModeUI();
 
     // Reset button
     const resetGroup = new Adw.PreferencesGroup();
@@ -155,19 +289,23 @@ export default class MouseTailPreferences extends ExtensionPreferences {
     });
 
     resetButton.connect("clicked", () => {
-      // Reset to default values
       settings.set_int("fade-duration", 200);
       settings.set_int("line-width", 8);
       settings.set_value("color", new GLib.Variant("ad", [1.0, 1.0, 1.0]));
       settings.set_double("alpha", 0.5);
       settings.set_string("render-mode", "precise");
+      settings.set_string("color-mode", "solid");
+      settings.set_string("rainbow-fixed-config", "#FF6B6B 500\n#4ECDC4 500\n#FFE66D");
+      settings.set_string("rainbow-ratio-config", "#FF6B6B 1\n#4ECDC4 1\n#FFE66D 1");
+      settings.set_string("rainbow-time-config", "#FF6B6B 500\n#4ECDC4 500\n#FFE66D 500");
 
-      // Update UI
       fadeDurationRow.set_value(200);
       lineWidthRow.set_value(8);
       colorButton.set_rgba(this._arrayToRgba([1.0, 1.0, 1.0]));
       alphaScale.set_value(0.5);
       renderModeRow.set_selected(0);
+      colorModeRow.set_selected(0);
+      updateColorModeUI();
     });
 
     resetRow.add_suffix(resetButton);
