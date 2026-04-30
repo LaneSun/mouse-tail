@@ -77,9 +77,12 @@ export default class MouseTrailExtension extends Extension {
 
     this._updateMonitorCoverage();
 
-    this._monitorsChangedId = Main.layoutManager.connect("monitors-changed", () => {
-      this._updateMonitorCoverage();
-    });
+    this._monitorsChangedId = Main.layoutManager.connect(
+      "monitors-changed",
+      () => {
+        this._updateMonitorCoverage();
+      },
+    );
 
     this._overviewShowingId = Main.overview.connect("showing", () => {
       global.stage.set_child_above_sibling(this._cont, null);
@@ -257,7 +260,11 @@ export default class MouseTrailExtension extends Extension {
       const g = parseInt(hex.slice(3, 5), 16) / 255;
       const b = parseInt(hex.slice(5, 7), 16) / 255;
 
-      if (i < lines.length - 1) {
+      const isLast = i === lines.length - 1;
+      const allowNoParam = isLast && mode === "rainbow-fixed";
+      const hasParam = parts.length >= 2 && parts[1].length > 0;
+
+      if (hasParam || !allowNoParam) {
         const param = parseFloat(parts[1]);
         acc += param;
         this._rainbowStops.push({ color: [r, g, b], param: acc });
@@ -364,10 +371,7 @@ export default class MouseTrailExtension extends Extension {
     const offsetY = this._monitorOffsetY ?? 0;
 
     if (this._colorMode === "rainbow-time") {
-      if (this._points.length === 0) {
-        this._trailStartTime = Date.now();
-      }
-      const elapsed = Date.now() - this._trailStartTime;
+      const elapsed = Date.now();
       const [r, g, b] = this._getTimeColor(elapsed);
       this._points.push([x - offsetX, y - offsetY, Date.now(), r, g, b]);
     } else {

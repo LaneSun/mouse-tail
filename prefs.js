@@ -196,7 +196,9 @@ export default class MouseTailPreferences extends ExtensionPreferences {
         if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) {
           return `Line ${i + 1}: invalid hex color "${hex}". Use #RRGGBB format.`;
         }
-        if (i < lines.length - 1) {
+        const isLast = i === lines.length - 1;
+        const needsParam = !isLast || mode !== "rainbow-fixed";
+        if (needsParam) {
           if (parts.length < 2) return `Line ${i + 1}: missing parameter.`;
           const param = parseFloat(parts[1]);
           if (isNaN(param) || param <= 0) {
@@ -248,7 +250,7 @@ export default class MouseTailPreferences extends ExtensionPreferences {
           );
         } else if (mode === "rainbow-time") {
           rainbowDescLabel.set_text(
-            "Format per line: #RRGGBB time(ms). The last color does not need a time.\nExample: red for 500ms, then green for 500ms, then blue."
+            "Format per line: #RRGGBB time(ms). All colors must have a time.\nExample: red for 500ms, then green for 500ms, then blue for 500ms."
           );
         }
 
@@ -296,7 +298,7 @@ export default class MouseTailPreferences extends ExtensionPreferences {
       settings.set_string("color-mode", "solid");
       settings.set_string("rainbow-fixed-config", "#FF0000 50\n#00FF00 50\n#0000FF");
       settings.set_string("rainbow-ratio-config", "#FF0000 1\n#00FF00 1\n#0000FF 1");
-      settings.set_string("rainbow-time-config", "#FF0000 500\n#00FF00 500\n#0000FF");
+      settings.set_string("rainbow-time-config", "#FF0000 500\n#00FF00 500\n#0000FF 500");
 
       fadeDurationRow.set_value(200);
       lineWidthRow.set_value(8);

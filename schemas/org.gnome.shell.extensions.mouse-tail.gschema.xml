@@ -70,9 +70,9 @@
     </key>
 
     <key name="rainbow-time-config" type="s">
-      <default>"#FF0000 500\n#00FF00 500\n#0000FF"</default>
+      <default>"#FF0000 500\n#00FF00 500\n#0000FF 500"</default>
       <summary>Time-Based Rainbow Configuration</summary>
-      <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). The last color does not need a time.</description>
+      <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). All colors must have a time.</description>
     </key>
   </schema>
 </schemalist>
