@@ -146,6 +146,8 @@ export default class MouseTrailExtension extends Extension {
   _updateMonitorCoverage() {
     const monitors = Main.layoutManager.monitors;
     if (monitors.length === 0) {
+      this._monitorOffsetX = 0;
+      this._monitorOffsetY = 0;
       this._cont.set_position(0, 0);
       this._cont.set_size(global.stage.width, global.stage.height);
       return;
@@ -163,8 +165,12 @@ export default class MouseTrailExtension extends Extension {
       maxY = Math.max(maxY, monitor.y + monitor.height);
     }
 
+    this._monitorOffsetX = minX;
+    this._monitorOffsetY = minY;
     this._cont.set_position(minX, minY);
     this._cont.set_size(maxX - minX, maxY - minY);
+    // 显示器布局变化时清空旧轨迹，避免坐标偏移导致的绘制错误
+    this._points = [];
   }
 
   update_pointer_watcher() {
@@ -230,6 +236,16 @@ export default class MouseTrailExtension extends Extension {
   }
 
   /**
+   * 安全计算速度因子，避免除以零
+   */
+  _getSpeedFactor(p1, p2, size) {
+    const dt = p2[2] - p1[2];
+    if (dt <= 0) return Infinity;
+    const dist = ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5;
+    return dist / dt / ((600 * size) / 1000);
+  }
+
+  /**
    * 捕获全局鼠标移动事件的回调
    */
   _onCapturedEvent(x, y) {
@@ -247,8 +263,10 @@ export default class MouseTrailExtension extends Extension {
         cur[2] = Math.round((next[2] + prev[2] + cur[2]) / 3);
       }
     }
-    // 记录当前鼠标位置和时间戳
-    this._points.push([x, y, Date.now()]);
+    // 记录当前鼠标位置（转换为相对于容器的局部坐标）和时间戳
+    const offsetX = this._monitorOffsetX ?? 0;
+    const offsetY = this._monitorOffsetY ?? 0;
+    this._points.push([x - offsetX, y - offsetY, Date.now()]);
     noise_cancel(this._points, this._lineWidth);
   }
 
@@ -288,17 +306,13 @@ export default class MouseTrailExtension extends Extension {
             sidx === 0 ? 0 : 1,
             ((now - p1[2]) / this._fadeLength) * 2,
             1 - (now - p1[2]) / this._fadeLength,
-            ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5 /
-              (p2[2] - p1[2]) /
-              ((600 * size) / 1000),
+            this._getSpeedFactor(p1, p2, size),
           );
           const alpha_e = Math.min(
             ((now - p2[2]) / this._fadeLength) * 2,
             it === splits.length - 1 ? 0 : 1,
             1 - (now - p2[2]) / this._fadeLength,
-            ((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2) ** 0.5 /
-              (p3[2] - p2[2]) /
-              ((600 * size) / 1000),
+            this._getSpeedFactor(p2, p3, size),
           );
 
           const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
@@ -359,9 +373,7 @@ export default class MouseTrailExtension extends Extension {
           const alpha_s = Math.min(
             ((now - p1[2]) / this._fadeLength) * 2,
             1 - (now - p1[2]) / this._fadeLength,
-            ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5 /
-              (p2[2] - p1[2]) /
-              ((600 * size) / 1000),
+            this._getSpeedFactor(p1, p2, size),
           );
           const alpha_e =
             i === pts.length - 3
@@ -369,9 +381,7 @@ export default class MouseTrailExtension extends Extension {
               : Math.min(
                   ((now - p2[2]) / this._fadeLength) * 2,
                   1 - (now - p2[2]) / this._fadeLength,
-                  ((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2) ** 0.5 /
-                    (p3[2] - p2[2]) /
-                    ((600 * size) / 1000),
+                  this._getSpeedFactor(p2, p3, size),
                 );
 
           const gradient = new Cairo.LinearGradient(p1[0], p1[1], p2[0], p2[1]);
