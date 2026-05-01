@@ -28,7 +28,8 @@ zip -r "${ZIP_FILE}" "${FILES[@]}" \
     -x "*~" \
     -x "*.bak" \
     -x "*.swp" \
-    -x "*/__pycache__/*"
+    -x "*/__pycache__/*" \
+    -x "schemas/gschemas.compiled"
 
 echo "Created ${ZIP_FILE}"
 echo "Contents:"
