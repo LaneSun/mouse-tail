@@ -186,31 +186,45 @@ export default class MouseTrailExtension extends Extension {
   }
 
   disable() {
-    if (this._drawIntervalWatcher) {
-      this._pointerWatcher._removeWatch(this._drawIntervalWatcher);
-      this._drawIntervalWatcher = null;
-    }
-
+    // 关键：先停掉重绘定时器，避免会话拆除期间回调触碰被销毁的 actor 导致卡死。
+    // 每一步独立 try/catch，确保单步失败不会中断整个清理流程。
     if (this._timeoutId) {
-      GLib.Source.remove(this._timeoutId);
+      try {
+        GLib.Source.remove(this._timeoutId);
+      } catch (_) {}
       this._timeoutId = null;
     }
 
+    if (this._drawIntervalWatcher) {
+      try {
+        // 使用 PointerWatch 的公共 API，而非私有的 _removeWatch
+        this._drawIntervalWatcher.remove();
+      } catch (_) {}
+      this._drawIntervalWatcher = null;
+    }
+    this._pointerWatcher = null;
+
     if (this._overviewShowingId) {
-      Main.overview.disconnect(this._overviewShowingId);
+      try {
+        Main.overview.disconnect(this._overviewShowingId);
+      } catch (_) {}
       this._overviewShowingId = null;
     }
 
     if (this._monitorsChangedId) {
-      Main.layoutManager.disconnect(this._monitorsChangedId);
+      try {
+        Main.layoutManager.disconnect(this._monitorsChangedId);
+      } catch (_) {}
       this._monitorsChangedId = null;
     }
 
     if (this._drawingLayer) {
-      this._cont.remove_child(this._drawingLayer);
-      global.stage.remove_child(this._cont);
-      this._drawingLayer.destroy();
-      this._cont.destroy();
+      try {
+        this._cont?.remove_child(this._drawingLayer);
+        global.stage.remove_child(this._cont);
+        this._drawingLayer.destroy();
+        this._cont?.destroy();
+      } catch (_) {}
       this._drawingLayer = null;
       this._cont = null;
     }
@@ -219,9 +233,9 @@ export default class MouseTrailExtension extends Extension {
 
     if (this._settingsConnections) {
       this._settingsConnections.forEach((connection) => {
-        if (this._settings) {
-          this._settings.disconnect(connection);
-        }
+        try {
+          this._settings?.disconnect(connection);
+        } catch (_) {}
       });
       this._settingsConnections = null;
     }
@@ -421,6 +435,9 @@ export default class MouseTrailExtension extends Extension {
   }
 
   _onRepaint(cr) {
+    // 会话拆除期间 disable() 可能已销毁 drawingLayer，此时直接跳过绘制
+    if (!this._drawingLayer) return;
+
     const pts = this._points;
     const now = Date.now();
     if (pts.length >= 3) {
