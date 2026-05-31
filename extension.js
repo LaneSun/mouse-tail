@@ -23,11 +23,16 @@ const MouseTrailLayer = GObject.registerClass(
   },
   class MouseTrailLayer extends St.DrawingArea {
     _init(extension) {
-      this._extension = extension;
       super._init({ reactive: false });
+      this._extension = extension;
       this.set_track_hover(false);
       this.set_reactive(false);
       this.set_size(global.stage.width, global.stage.height);
+      // 在 destroy 信号中断开对 extension 的回引用，打破 GObject<->JS 循环引用。
+      // 这是注销时整机卡死的根因：GC 终结阶段回调进已释放对象会触发 native abort。
+      this.connect("destroy", () => {
+        this._extension = null;
+      });
     }
 
     vfunc_parent_set() {
@@ -46,9 +51,11 @@ const MouseTrailLayer = GObject.registerClass(
     vfunc_pick(_pickContext) {}
 
     vfunc_repaint() {
+      const extension = this._extension;
+      if (!extension) return;
       const cr = this.get_context();
       try {
-        this._extension._onRepaint(cr);
+        extension._onRepaint(cr);
       } catch (_) {}
       cr.$dispose();
     }
@@ -219,6 +226,8 @@ export default class MouseTrailExtension extends Extension {
     }
 
     if (this._drawingLayer) {
+      // 先断开回引用，确保后续 destroy 触发的 vfunc 回调不会再进入 JS
+      this._drawingLayer._extension = null;
       try {
         this._cont?.remove_child(this._drawingLayer);
         global.stage.remove_child(this._cont);
