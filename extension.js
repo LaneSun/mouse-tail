@@ -2,65 +2,14 @@ import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
 import Cairo from "gi://cairo";
-import GObject from "gi://GObject";
 
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
-const MouseTrailContainer = GObject.registerClass(
-  {
-    GTypeName: "MouseTrailContainer",
-  },
-  class MouseTrailContainer extends Clutter.Actor {
-    vfunc_pick(_pickContext) {}
-  },
-);
-
-const MouseTrailLayer = GObject.registerClass(
-  {
-    GTypeName: "MouseTrailLayer",
-  },
-  class MouseTrailLayer extends St.DrawingArea {
-    _init(extension) {
-      super._init({ reactive: false });
-      this._extension = extension;
-      this.set_track_hover(false);
-      this.set_reactive(false);
-      this.set_size(global.stage.width, global.stage.height);
-      // 在 destroy 信号中断开对 extension 的回引用，打破 GObject<->JS 循环引用。
-      // 这是注销时整机卡死的根因：GC 终结阶段回调进已释放对象会触发 native abort。
-      this.connect("destroy", () => {
-        this._extension = null;
-      });
-    }
-
-    vfunc_parent_set() {
-      this.clear_constraints();
-      const parent = this.get_parent();
-      if (parent) {
-        this.add_constraint(
-          new Clutter.BindConstraint({
-            coordinate: Clutter.BindCoordinate.SIZE,
-            source: parent,
-          }),
-        );
-      }
-    }
-
-    vfunc_pick(_pickContext) {}
-
-    vfunc_repaint() {
-      const extension = this._extension;
-      if (!extension) return;
-      const cr = this.get_context();
-      try {
-        extension._onRepaint(cr);
-      } catch (_) {}
-      cr.$dispose();
-    }
-  },
-);
+// 注意：刻意不使用 GObject.registerClass 继承 St/Clutter 类。
+// 自定义 GType 无法注销，其 vfunc 跳板在进程退出时清理会触发 GJS 内省终结崩溃
+// （注销时整机黑屏的根因）。改用普通实例 + 信号/约束的委托模式。
 
 export default class MouseTrailExtension extends Extension {
   enable() {
@@ -76,11 +25,29 @@ export default class MouseTrailExtension extends Extension {
     this._points = [];
     this._prev_len = 0;
 
-    this._cont = new MouseTrailContainer();
-    this._drawingLayer = new MouseTrailLayer(this);
+    // 普通实例（非自定义子类）。reactive: false 使其不参与输入拾取，鼠标事件穿透到下层。
+    this._cont = new Clutter.Actor({ reactive: false });
+    this._drawingLayer = new St.DrawingArea({ reactive: false });
+    this._drawingLayer.set_size(global.stage.width, global.stage.height);
 
     this._cont.add_child(this._drawingLayer);
+    // 绘制层尺寸跟随容器（替代原 vfunc_parent_set 中的绑定）
+    this._drawingLayer.add_constraint(
+      new Clutter.BindConstraint({
+        coordinate: Clutter.BindCoordinate.SIZE,
+        source: this._cont,
+      }),
+    );
     global.stage.add_child(this._cont);
+
+    // 通过 repaint 信号绘制（替代原 vfunc_repaint）
+    this._repaintId = this._drawingLayer.connect("repaint", (area) => {
+      const cr = area.get_context();
+      try {
+        this._onRepaint(cr);
+      } catch (_) {}
+      cr.$dispose();
+    });
 
     this._updateMonitorCoverage();
 
@@ -184,7 +151,7 @@ export default class MouseTrailExtension extends Extension {
 
   update_pointer_watcher() {
     if (this._drawIntervalWatcher) {
-      this._pointerWatcher._removeWatch(this._drawIntervalWatcher);
+      this._drawIntervalWatcher.remove();
     }
     this._drawIntervalWatcher = this._pointerWatcher.addWatch(
       20,
@@ -225,13 +192,17 @@ export default class MouseTrailExtension extends Extension {
       this._monitorsChangedId = null;
     }
 
-    if (this._drawingLayer) {
-      // 先断开回引用，确保后续 destroy 触发的 vfunc 回调不会再进入 JS
-      this._drawingLayer._extension = null;
+    if (this._repaintId) {
       try {
-        this._cont?.remove_child(this._drawingLayer);
+        this._drawingLayer?.disconnect(this._repaintId);
+      } catch (_) {}
+      this._repaintId = null;
+    }
+
+    if (this._drawingLayer) {
+      try {
         global.stage.remove_child(this._cont);
-        this._drawingLayer.destroy();
+        // 销毁容器会一并销毁其子节点（绘制层）
         this._cont?.destroy();
       } catch (_) {}
       this._drawingLayer = null;
