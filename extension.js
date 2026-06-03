@@ -202,7 +202,8 @@ export default class MouseTrailExtension extends Extension {
     if (this._drawingLayer) {
       try {
         global.stage.remove_child(this._cont);
-        // 销毁容器会一并销毁其子节点（绘制层）
+        // 先销毁子节点（会自动从父容器移除），再销毁容器
+        this._drawingLayer.destroy();
         this._cont?.destroy();
       } catch (_) {}
       this._drawingLayer = null;
