@@ -2,6 +2,7 @@ import St from "gi://St";
 import Clutter from "gi://Clutter";
 import GLib from "gi://GLib";
 import Cairo from "gi://cairo";
+import Shell from "gi://Shell";
 
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
@@ -29,6 +30,11 @@ export default class MouseTrailExtension extends Extension {
     this._cont = new Clutter.Actor({ reactive: false });
     this._drawingLayer = new St.DrawingArea({ reactive: false });
     this._drawingLayer.set_size(global.stage.width, global.stage.height);
+
+    // 即使在 PickMode.ALL 下也将两个 actor 从拾取中隐藏（替代原 vfunc_pick）。
+    // 否则总览(overview)中的窗口拖拽(DnD)会命中本插件的全屏覆盖层而被遮挡。
+    Shell.util_set_hidden_from_pick(this._cont, true);
+    Shell.util_set_hidden_from_pick(this._drawingLayer, true);
 
     this._cont.add_child(this._drawingLayer);
     // 绘制层尺寸跟随容器（替代原 vfunc_parent_set 中的绑定）
