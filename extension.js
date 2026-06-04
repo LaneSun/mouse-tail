@@ -8,10 +8,6 @@ import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
-// 注意：刻意不使用 GObject.registerClass 继承 St/Clutter 类。
-// 自定义 GType 无法注销，其 vfunc 跳板在进程退出时清理会触发 GJS 内省终结崩溃
-// （注销时整机黑屏的根因）。改用普通实例 + 信号/约束的委托模式。
-
 export default class MouseTrailExtension extends Extension {
   enable() {
     this._settings = this.getSettings();
@@ -37,7 +33,6 @@ export default class MouseTrailExtension extends Extension {
     Shell.util_set_hidden_from_pick(this._drawingLayer, true);
 
     this._cont.add_child(this._drawingLayer);
-    // 绘制层尺寸跟随容器（替代原 vfunc_parent_set 中的绑定）
     this._drawingLayer.add_constraint(
       new Clutter.BindConstraint({
         coordinate: Clutter.BindCoordinate.SIZE,
@@ -46,12 +41,9 @@ export default class MouseTrailExtension extends Extension {
     );
     global.stage.add_child(this._cont);
 
-    // 通过 repaint 信号绘制（替代原 vfunc_repaint）
     this._repaintId = this._drawingLayer.connect("repaint", (area) => {
       const cr = area.get_context();
-      try {
-        this._onRepaint(cr);
-      } catch (_) {}
+      this._onRepaint(cr);
       cr.$dispose();
     });
 
@@ -166,52 +158,36 @@ export default class MouseTrailExtension extends Extension {
   }
 
   disable() {
-    // 关键：先停掉重绘定时器，避免会话拆除期间回调触碰被销毁的 actor 导致卡死。
-    // 每一步独立 try/catch，确保单步失败不会中断整个清理流程。
     if (this._timeoutId) {
-      try {
-        GLib.Source.remove(this._timeoutId);
-      } catch (_) {}
+      GLib.Source.remove(this._timeoutId);
       this._timeoutId = null;
     }
 
     if (this._drawIntervalWatcher) {
-      try {
-        // 使用 PointerWatch 的公共 API，而非私有的 _removeWatch
-        this._drawIntervalWatcher.remove();
-      } catch (_) {}
+      this._drawIntervalWatcher.remove();
       this._drawIntervalWatcher = null;
     }
     this._pointerWatcher = null;
 
     if (this._overviewShowingId) {
-      try {
-        Main.overview.disconnect(this._overviewShowingId);
-      } catch (_) {}
+      Main.overview.disconnect(this._overviewShowingId);
       this._overviewShowingId = null;
     }
 
     if (this._monitorsChangedId) {
-      try {
-        Main.layoutManager.disconnect(this._monitorsChangedId);
-      } catch (_) {}
+      Main.layoutManager.disconnect(this._monitorsChangedId);
       this._monitorsChangedId = null;
     }
 
     if (this._repaintId) {
-      try {
-        this._drawingLayer?.disconnect(this._repaintId);
-      } catch (_) {}
+      this._drawingLayer?.disconnect(this._repaintId);
       this._repaintId = null;
     }
 
     if (this._drawingLayer) {
-      try {
-        global.stage.remove_child(this._cont);
-        // 先销毁子节点（会自动从父容器移除），再销毁容器
-        this._drawingLayer.destroy();
-        this._cont?.destroy();
-      } catch (_) {}
+      global.stage.remove_child(this._cont);
+      this._drawingLayer.destroy();
+      this._cont?.destroy();
       this._drawingLayer = null;
       this._cont = null;
     }
@@ -220,9 +196,7 @@ export default class MouseTrailExtension extends Extension {
 
     if (this._settingsConnections) {
       this._settingsConnections.forEach((connection) => {
-        try {
-          this._settings?.disconnect(connection);
-        } catch (_) {}
+        this._settings?.disconnect(connection);
       });
       this._settingsConnections = null;
     }
@@ -348,7 +322,8 @@ export default class MouseTrailExtension extends Extension {
     }
 
     const prevAccumulated = accumulated - stops[idx].length;
-    const localT = stops[idx].length > 0 ? (t - prevAccumulated) / stops[idx].length : 0;
+    const localT =
+      stops[idx].length > 0 ? (t - prevAccumulated) / stops[idx].length : 0;
 
     const nextIdx = (idx + 1) % stops.length;
     return this._lerpColor(stops[idx].color, stops[nextIdx].color, localT);
