@@ -20,12 +20,17 @@ export default class MouseTrailExtension extends Extension {
     this._parseRainbowConfig();
 
     this._points = [];
-    this._prev_len = 0;
+    // 画布原点（轨迹包围盒左上角），_tick 每帧更新，_onRepaint 据此平移坐标系
+    this._originX = 0;
+    this._originY = 0;
 
     // 普通实例（非自定义子类）。reactive: false 使其不参与输入拾取，鼠标事件穿透到下层。
     this._cont = new Clutter.Actor({ reactive: false });
-    this._drawingLayer = new St.DrawingArea({ reactive: false });
-    this._drawingLayer.set_size(global.stage.width, global.stage.height);
+
+    // 画布只覆盖轨迹包围盒而非全屏：St.DrawingArea 每次 queue_repaint 都会销毁并
+    // 整幅重建后备 surface（全屏 = 每 tick 全屏 memset + 纹理全量上传）。
+    // 无轨迹时保持隐藏，避免常驻全屏透明纹理参与每帧合成。
+    this._drawingLayer = new St.DrawingArea({ reactive: false, visible: false });
 
     // 即使在 PickMode.ALL 下也将两个 actor 从拾取中隐藏（替代原 vfunc_pick）。
     // 否则总览(overview)中的窗口拖拽(DnD)会命中本插件的全屏覆盖层而被遮挡。
@@ -33,12 +38,6 @@ export default class MouseTrailExtension extends Extension {
     Shell.util_set_hidden_from_pick(this._drawingLayer, true);
 
     this._cont.add_child(this._drawingLayer);
-    this._drawingLayer.add_constraint(
-      new Clutter.BindConstraint({
-        coordinate: Clutter.BindCoordinate.SIZE,
-        source: this._cont,
-      }),
-    );
     global.stage.add_child(this._cont);
 
     this._repaintId = this._drawingLayer.connect("repaint", (area) => {
@@ -64,8 +63,7 @@ export default class MouseTrailExtension extends Extension {
     this.update_pointer_watcher();
 
     this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
-      if (this._points.length >= 3 || this._prev_len >= 3)
-        this._drawingLayer?.queue_repaint();
+      this._tick();
       return GLib.SOURCE_CONTINUE;
     });
 
@@ -119,6 +117,8 @@ export default class MouseTrailExtension extends Extension {
   }
 
   _updateMonitorCoverage() {
+    // 布局变化后画布上的旧内容必然失效，立即隐藏避免残留影像
+    if (this._drawingLayer) this._drawingLayer.visible = false;
     const monitors = Main.layoutManager.monitors;
     if (monitors.length === 0) {
       this._monitorOffsetX = 0;
@@ -155,6 +155,60 @@ export default class MouseTrailExtension extends Extension {
       20,
       this._onCapturedEvent.bind(this),
     );
+  }
+
+  _tick() {
+    const layer = this._drawingLayer;
+    if (!layer) return;
+
+    const now = Date.now();
+    const pts = (this._points = this._points.filter(
+      (p) => now - p[2] < this._fadeLength,
+    ));
+
+    if (pts.length < 3) {
+      // 轨迹消失后隐藏画布：空纹理不应参与每帧合成
+      layer.visible = false;
+      return;
+    }
+
+    // 轨迹包围盒。maxSq 记录最大单步/跨步距离平方，用于覆盖 Catmull-Rom
+    // 控制点超出点列包围盒的部分（控制点偏移 ≤ 跨步距离 × 0.167，贝塞尔曲线
+    // 必落在其控制点凸包内）；描边宽度、斜接尖角与抗锯齿出血由 lineWidth 部分覆盖。
+    let xMin = Infinity;
+    let xMax = -Infinity;
+    let yMin = Infinity;
+    let yMax = -Infinity;
+    let maxSq = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (p[0] < xMin) xMin = p[0];
+      if (p[0] > xMax) xMax = p[0];
+      if (p[1] < yMin) yMin = p[1];
+      if (p[1] > yMax) yMax = p[1];
+      for (let k = 1; k <= 2 && i + k < pts.length; k++) {
+        const dx = pts[i + k][0] - p[0];
+        const dy = pts[i + k][1] - p[1];
+        const sq = dx * dx + dy * dy;
+        if (sq > maxSq) maxSq = sq;
+      }
+    }
+
+    const pad = this._lineWidth * 2 + Math.ceil(Math.sqrt(maxSq) * 0.167) + 1;
+    const ox = Math.floor(xMin - pad);
+    const oy = Math.floor(yMin - pad);
+    const w = Math.ceil(xMax + pad) - ox;
+    const h = Math.ceil(yMax + pad) - oy;
+    this._originX = ox;
+    this._originY = oy;
+
+    const resized = w !== layer.width || h !== layer.height;
+    layer.set_position(ox, oy);
+    if (resized) layer.set_size(w, h);
+    layer.visible = true;
+    // 尺寸变化时 St.DrawingArea 的 allocate 会自动发出一次 repaint 信号完成绘制；
+    // 仅在尺寸不变（纯移动或静止）时手动请求重绘，避免每 tick 双重绘制。
+    if (!resized) layer.queue_repaint();
   }
 
   disable() {
@@ -409,12 +463,8 @@ export default class MouseTrailExtension extends Extension {
       const alpha = this._alpha;
       const size = this._lineWidth;
       cr.setLineWidth(size);
-
-      const x_min = pts.reduce((a, p) => Math.min(a, p[0]), Infinity) - size;
-      const x_max = pts.reduce((a, p) => Math.max(a, p[0]), 0) + size;
-      const y_min = pts.reduce((a, p) => Math.min(a, p[1]), Infinity) - size;
-      const y_max = pts.reduce((a, p) => Math.max(a, p[1]), 0) + size;
-      this._drawingLayer.set_clip(x_min, y_min, x_max - x_min, y_max - y_min);
+      // 画布已在 _tick 中对齐到包围盒原点，平移后绘制坐标与点位存储坐标一致
+      cr.translate(-this._originX, -this._originY);
 
       const getColors = (idx1, idx2) => {
         if (colorMode === "solid") return [color, color];
@@ -531,9 +581,6 @@ export default class MouseTrailExtension extends Extension {
         }
       }
     }
-
-    this._prev_len = pts.length;
-    this._points = pts.filter((p) => now - p[2] < this._fadeLength);
   }
 }
 
