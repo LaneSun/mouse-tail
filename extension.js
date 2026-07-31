@@ -20,20 +20,14 @@ export default class MouseTrailExtension extends Extension {
     this._parseRainbowConfig();
 
     this._points = [];
-    // 画布原点（轨迹包围盒左上角），_tick 每帧更新，_onRepaint 据此平移坐标系
+    // 画布原点（轨迹包围盒左上角）
     this._originX = 0;
     this._originY = 0;
 
-    // 普通实例（非自定义子类）。reactive: false 使其不参与输入拾取，鼠标事件穿透到下层。
     this._cont = new Clutter.Actor({ reactive: false });
 
-    // 画布只覆盖轨迹包围盒而非全屏：St.DrawingArea 每次 queue_repaint 都会销毁并
-    // 整幅重建后备 surface（全屏 = 每 tick 全屏 memset + 纹理全量上传）。
-    // 无轨迹时保持隐藏，避免常驻全屏透明纹理参与每帧合成。
     this._drawingLayer = new St.DrawingArea({ reactive: false, visible: false });
 
-    // 即使在 PickMode.ALL 下也将两个 actor 从拾取中隐藏（替代原 vfunc_pick）。
-    // 否则总览(overview)中的窗口拖拽(DnD)会命中本插件的全屏覆盖层而被遮挡。
     Shell.util_set_hidden_from_pick(this._cont, true);
     Shell.util_set_hidden_from_pick(this._drawingLayer, true);
 
@@ -117,7 +111,6 @@ export default class MouseTrailExtension extends Extension {
   }
 
   _updateMonitorCoverage() {
-    // 布局变化后画布上的旧内容必然失效，立即隐藏避免残留影像
     if (this._drawingLayer) this._drawingLayer.visible = false;
     const monitors = Main.layoutManager.monitors;
     if (monitors.length === 0) {
@@ -167,14 +160,10 @@ export default class MouseTrailExtension extends Extension {
     ));
 
     if (pts.length < 3) {
-      // 轨迹消失后隐藏画布：空纹理不应参与每帧合成
       layer.visible = false;
       return;
     }
 
-    // 轨迹包围盒。maxSq 记录最大单步/跨步距离平方，用于覆盖 Catmull-Rom
-    // 控制点超出点列包围盒的部分（控制点偏移 ≤ 跨步距离 × 0.167，贝塞尔曲线
-    // 必落在其控制点凸包内）；描边宽度、斜接尖角与抗锯齿出血由 lineWidth 部分覆盖。
     let xMin = Infinity;
     let xMax = -Infinity;
     let yMin = Infinity;
@@ -206,8 +195,6 @@ export default class MouseTrailExtension extends Extension {
     layer.set_position(ox, oy);
     if (resized) layer.set_size(w, h);
     layer.visible = true;
-    // 尺寸变化时 St.DrawingArea 的 allocate 会自动发出一次 repaint 信号完成绘制；
-    // 仅在尺寸不变（纯移动或静止）时手动请求重绘，避免每 tick 双重绘制。
     if (!resized) layer.queue_repaint();
   }
 
@@ -310,7 +297,6 @@ export default class MouseTrailExtension extends Extension {
       });
     }
 
-    // 为 fixed 和 ratio 模式计算累计 param（用于 _getColorAt）
     let acc2 = 0;
     for (const stop of this._rainbowStops) {
       acc2 += stop.length;
@@ -319,8 +305,6 @@ export default class MouseTrailExtension extends Extension {
 
     if (mode === "rainbow-time") {
       this._rainbowPeriod = acc;
-      // 去掉最后一个虚拟 stop（period 位置的第一个颜色副本）
-      // 保持 stops 为原始配置的颜色，在 _getTimeColor 中处理环形
     }
   }
 
@@ -364,7 +348,6 @@ export default class MouseTrailExtension extends Extension {
 
     const t = elapsed % period;
 
-    // 找到 t 所在的区间
     let accumulated = 0;
     let idx = 0;
     for (let i = 0; i < stops.length; i++) {
@@ -389,7 +372,6 @@ export default class MouseTrailExtension extends Extension {
 
     if (mode === "rainbow-fixed") {
       let dist = 0;
-      // 从光标位置（数组尾部/最新点）向头部累计，确保光标显示配置的起始颜色
       for (let i = pts.length - 1; i >= 0; i--) {
         if (i < pts.length - 1) {
           const dx = pts[i][0] - pts[i + 1][0];
@@ -406,7 +388,6 @@ export default class MouseTrailExtension extends Extension {
         totalDist += Math.sqrt(dx * dx + dy * dy);
       }
       let dist = 0;
-      // 从光标位置向头部累计，光标处 ratio=0（起始颜色）
       for (let i = pts.length - 1; i >= 0; i--) {
         if (i < pts.length - 1) {
           const dx = pts[i][0] - pts[i + 1][0];
@@ -451,7 +432,6 @@ export default class MouseTrailExtension extends Extension {
   }
 
   _onRepaint(cr) {
-    // 会话拆除期间 disable() 可能已销毁 drawingLayer，此时直接跳过绘制
     if (!this._drawingLayer) return;
 
     const pts = this._points;
@@ -463,7 +443,6 @@ export default class MouseTrailExtension extends Extension {
       const alpha = this._alpha;
       const size = this._lineWidth;
       cr.setLineWidth(size);
-      // 画布已在 _tick 中对齐到包围盒原点，平移后绘制坐标与点位存储坐标一致
       cr.translate(-this._originX, -this._originY);
 
       const getColors = (idx1, idx2) => {
@@ -474,7 +453,6 @@ export default class MouseTrailExtension extends Extension {
             [pts[idx2][3], pts[idx2][4], pts[idx2][5]],
           ];
         }
-        // rainbow-fixed or rainbow-ratio: use pre-calculated colors
         return [this._pointColors[idx1], this._pointColors[idx2]];
       };
 
