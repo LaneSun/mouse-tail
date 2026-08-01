@@ -20,25 +20,18 @@ export default class MouseTrailExtension extends Extension {
     this._parseRainbowConfig();
 
     this._points = [];
-    this._prev_len = 0;
+    // 画布原点（轨迹包围盒左上角）
+    this._originX = 0;
+    this._originY = 0;
 
-    // 普通实例（非自定义子类）。reactive: false 使其不参与输入拾取，鼠标事件穿透到下层。
     this._cont = new Clutter.Actor({ reactive: false });
-    this._drawingLayer = new St.DrawingArea({ reactive: false });
-    this._drawingLayer.set_size(global.stage.width, global.stage.height);
 
-    // 即使在 PickMode.ALL 下也将两个 actor 从拾取中隐藏（替代原 vfunc_pick）。
-    // 否则总览(overview)中的窗口拖拽(DnD)会命中本插件的全屏覆盖层而被遮挡。
+    this._drawingLayer = new St.DrawingArea({ reactive: false, visible: false });
+
     Shell.util_set_hidden_from_pick(this._cont, true);
     Shell.util_set_hidden_from_pick(this._drawingLayer, true);
 
     this._cont.add_child(this._drawingLayer);
-    this._drawingLayer.add_constraint(
-      new Clutter.BindConstraint({
-        coordinate: Clutter.BindCoordinate.SIZE,
-        source: this._cont,
-      }),
-    );
     global.stage.add_child(this._cont);
 
     this._repaintId = this._drawingLayer.connect("repaint", (area) => {
@@ -64,8 +57,7 @@ export default class MouseTrailExtension extends Extension {
     this.update_pointer_watcher();
 
     this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
-      if (this._points.length >= 3 || this._prev_len >= 3)
-        this._drawingLayer?.queue_repaint();
+      this._tick();
       return GLib.SOURCE_CONTINUE;
     });
 
@@ -119,6 +111,7 @@ export default class MouseTrailExtension extends Extension {
   }
 
   _updateMonitorCoverage() {
+    if (this._drawingLayer) this._drawingLayer.visible = false;
     const monitors = Main.layoutManager.monitors;
     if (monitors.length === 0) {
       this._monitorOffsetX = 0;
@@ -155,6 +148,54 @@ export default class MouseTrailExtension extends Extension {
       20,
       this._onCapturedEvent.bind(this),
     );
+  }
+
+  _tick() {
+    const layer = this._drawingLayer;
+    if (!layer) return;
+
+    const now = Date.now();
+    const pts = (this._points = this._points.filter(
+      (p) => now - p[2] < this._fadeLength,
+    ));
+
+    if (pts.length < 3) {
+      layer.visible = false;
+      return;
+    }
+
+    let xMin = Infinity;
+    let xMax = -Infinity;
+    let yMin = Infinity;
+    let yMax = -Infinity;
+    let maxSq = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (p[0] < xMin) xMin = p[0];
+      if (p[0] > xMax) xMax = p[0];
+      if (p[1] < yMin) yMin = p[1];
+      if (p[1] > yMax) yMax = p[1];
+      for (let k = 1; k <= 2 && i + k < pts.length; k++) {
+        const dx = pts[i + k][0] - p[0];
+        const dy = pts[i + k][1] - p[1];
+        const sq = dx * dx + dy * dy;
+        if (sq > maxSq) maxSq = sq;
+      }
+    }
+
+    const pad = this._lineWidth * 2 + Math.ceil(Math.sqrt(maxSq) * 0.167) + 1;
+    const ox = Math.floor(xMin - pad);
+    const oy = Math.floor(yMin - pad);
+    const w = Math.ceil(xMax + pad) - ox;
+    const h = Math.ceil(yMax + pad) - oy;
+    this._originX = ox;
+    this._originY = oy;
+
+    const resized = w !== layer.width || h !== layer.height;
+    layer.set_position(ox, oy);
+    if (resized) layer.set_size(w, h);
+    layer.visible = true;
+    if (!resized) layer.queue_repaint();
   }
 
   disable() {
@@ -256,7 +297,6 @@ export default class MouseTrailExtension extends Extension {
       });
     }
 
-    // 为 fixed 和 ratio 模式计算累计 param（用于 _getColorAt）
     let acc2 = 0;
     for (const stop of this._rainbowStops) {
       acc2 += stop.length;
@@ -265,8 +305,6 @@ export default class MouseTrailExtension extends Extension {
 
     if (mode === "rainbow-time") {
       this._rainbowPeriod = acc;
-      // 去掉最后一个虚拟 stop（period 位置的第一个颜色副本）
-      // 保持 stops 为原始配置的颜色，在 _getTimeColor 中处理环形
     }
   }
 
@@ -310,7 +348,6 @@ export default class MouseTrailExtension extends Extension {
 
     const t = elapsed % period;
 
-    // 找到 t 所在的区间
     let accumulated = 0;
     let idx = 0;
     for (let i = 0; i < stops.length; i++) {
@@ -335,7 +372,6 @@ export default class MouseTrailExtension extends Extension {
 
     if (mode === "rainbow-fixed") {
       let dist = 0;
-      // 从光标位置（数组尾部/最新点）向头部累计，确保光标显示配置的起始颜色
       for (let i = pts.length - 1; i >= 0; i--) {
         if (i < pts.length - 1) {
           const dx = pts[i][0] - pts[i + 1][0];
@@ -352,7 +388,6 @@ export default class MouseTrailExtension extends Extension {
         totalDist += Math.sqrt(dx * dx + dy * dy);
       }
       let dist = 0;
-      // 从光标位置向头部累计，光标处 ratio=0（起始颜色）
       for (let i = pts.length - 1; i >= 0; i--) {
         if (i < pts.length - 1) {
           const dx = pts[i][0] - pts[i + 1][0];
@@ -397,7 +432,6 @@ export default class MouseTrailExtension extends Extension {
   }
 
   _onRepaint(cr) {
-    // 会话拆除期间 disable() 可能已销毁 drawingLayer，此时直接跳过绘制
     if (!this._drawingLayer) return;
 
     const pts = this._points;
@@ -409,12 +443,7 @@ export default class MouseTrailExtension extends Extension {
       const alpha = this._alpha;
       const size = this._lineWidth;
       cr.setLineWidth(size);
-
-      const x_min = pts.reduce((a, p) => Math.min(a, p[0]), Infinity) - size;
-      const x_max = pts.reduce((a, p) => Math.max(a, p[0]), 0) + size;
-      const y_min = pts.reduce((a, p) => Math.min(a, p[1]), Infinity) - size;
-      const y_max = pts.reduce((a, p) => Math.max(a, p[1]), 0) + size;
-      this._drawingLayer.set_clip(x_min, y_min, x_max - x_min, y_max - y_min);
+      cr.translate(-this._originX, -this._originY);
 
       const getColors = (idx1, idx2) => {
         if (colorMode === "solid") return [color, color];
@@ -424,7 +453,6 @@ export default class MouseTrailExtension extends Extension {
             [pts[idx2][3], pts[idx2][4], pts[idx2][5]],
           ];
         }
-        // rainbow-fixed or rainbow-ratio: use pre-calculated colors
         return [this._pointColors[idx1], this._pointColors[idx2]];
       };
 
@@ -531,9 +559,6 @@ export default class MouseTrailExtension extends Extension {
         }
       }
     }
-
-    this._prev_len = pts.length;
-    this._points = pts.filter((p) => now - p[2] < this._fadeLength);
   }
 }
 
