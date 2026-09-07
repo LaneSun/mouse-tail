@@ -1,0 +1,346 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: mouse-tail 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-07 13:15+0800\n"
+"PO-Revision-Date: 2026-09-07 13:10+0800\n"
+"Last-Translator: Lane Sun <lanesun@anlbrain.com>\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: prefs.js:34
+msgid ""
+"Format per line: #RRGGBB distance(px). The last color does not need a "
+"distance.\n"
+"Example: red for 50px, then green for 50px, then blue forever."
+msgstr ""
+"每行格式：#RRGGBB 距离(px)。最后一个颜色不需要距离。\n"
+"示例：红色 50px，然后绿色 50px，之后一直是蓝色。"
+
+#: prefs.js:38
+msgid ""
+"Format per line: #RRGGBB ratio(positive number). Values are normalized "
+"automatically.\n"
+"Example: ratios 1, 1, 1 split the trail into three equal parts."
+msgstr ""
+"每行格式：#RRGGBB 比例(正数)。数值会自动归一化。\n"
+"示例：比例 1、1、1 将轨迹均分为三段。"
+
+#: prefs.js:42
+msgid ""
+"Format per line: #RRGGBB time(ms). All colors must have a time.\n"
+"Example: red for 500ms, then green for 500ms, then blue for 500ms."
+msgstr ""
+"每行格式：#RRGGBB 时间(ms)。每个颜色都必须有时间。\n"
+"示例：红色 500ms，然后绿色 500ms，然后蓝色 500ms。"
+
+#: prefs.js:81
+msgid "Cancel"
+msgstr "取消"
+
+#: prefs.js:186
+msgid "Precise"
+msgstr "精确"
+
+#: prefs.js:187
+msgid "Balance"
+msgstr "平衡"
+
+#: prefs.js:188
+msgid "Fast"
+msgstr "快速"
+
+#: prefs.js:191
+msgid "Solid"
+msgstr "纯色"
+
+#: prefs.js:192
+msgid "Fixed-length rainbow"
+msgstr "定长彩虹"
+
+#: prefs.js:193
+msgid "Ratio rainbow"
+msgstr "比例彩虹"
+
+#: prefs.js:194
+msgid "Time-based rainbow"
+msgstr "时间彩虹"
+
+#: prefs.js:216
+msgid "color stops"
+msgstr "个颜色节点"
+
+#: prefs.js:224
+msgid "Default"
+msgstr "默认"
+
+#: prefs.js:226
+msgid "Untitled"
+msgstr "未命名"
+
+#: prefs.js:239 prefs.js:284
+msgid "Profiles"
+msgstr "配置"
+
+#: prefs.js:252
+msgid "Waiting for the extension…"
+msgstr "等待扩展响应…"
+
+#: prefs.js:268
+msgid "Currently Active"
+msgstr "当前生效"
+
+#: prefs.js:273
+msgid "Extension is disabled — showing local preview"
+msgstr "扩展已停用——显示本地预览"
+
+#: prefs.js:286
+msgid ""
+"Rules with more active conditions take priority. Options left unset fall "
+"through to lower-priority rules."
+msgstr "启用条件越多的规则优先级越高；未设置的选项会回退到优先级更低的规则。"
+
+#: prefs.js:296
+msgid "Base settings — always applies"
+msgstr "基准设置——始终生效"
+
+#: prefs.js:300
+msgid "Dark style"
+msgstr "深色风格"
+
+#: prefs.js:300
+msgid "Light style"
+msgstr "浅色风格"
+
+#: prefs.js:303
+msgid "Workspace"
+msgid_plural "Workspaces"
+msgstr[0] "工作区"
+
+#: prefs.js:310
+msgid "No conditions (always applies)"
+msgstr "无条件（始终生效）"
+
+#: prefs.js:329
+msgid "Number of conditions (higher = higher priority)"
+msgstr "条件数量（越多优先级越高）"
+
+#: prefs.js:340
+msgid "Increase priority among equal-specificity rules"
+msgstr "在同优先级规则中上移"
+
+#: prefs.js:368
+msgid "New Profile"
+msgstr "新建配置"
+
+#: prefs.js:374
+msgid "New profile"
+msgstr "新建配置"
+
+#: prefs.js:392
+msgid "Reset to Defaults"
+msgstr "重置为默认值"
+
+#: prefs.js:393
+msgid "Restore all profiles to factory settings"
+msgstr "将所有配置恢复为出厂设置"
+
+#: prefs.js:396 prefs.js:407
+msgid "Reset"
+msgstr "重置"
+
+#: prefs.js:403
+msgid "Reset All Profiles?"
+msgstr "重置所有配置？"
+
+#: prefs.js:405
+msgid "All profiles and their settings will be restored to factory defaults."
+msgstr "所有配置及其设置都将恢复为出厂默认值。"
+
+#: prefs.js:412
+msgid "Profiles reset to factory defaults"
+msgstr "已将配置重置为出厂默认值"
+
+#: prefs.js:455
+msgid "Name"
+msgstr "名称"
+
+#: prefs.js:469
+msgid "Apply When"
+msgstr "生效条件"
+
+#: prefs.js:471
+msgid ""
+"More active conditions = higher priority. An empty list or a switched-off "
+"row means the condition is not set."
+msgstr "启用条件越多优先级越高；列表为空或开关关闭表示该条件未设置。"
+
+#: prefs.js:478
+msgid "Priority"
+msgstr "优先级"
+
+#: prefs.js:492
+msgid "Lowest — matches everything"
+msgstr "最低——匹配一切"
+
+#: prefs.js:493
+#, javascript-format
+msgid "1 condition"
+msgid_plural "%d conditions"
+msgstr[0] "%d 个条件"
+
+#: prefs.js:499
+msgid "System Style"
+msgstr "系统风格"
+
+#: prefs.js:500
+msgid "Match the GNOME light/dark style"
+msgstr "匹配 GNOME 的浅色/深色风格"
+
+#: prefs.js:503
+msgid "Light"
+msgstr "浅色"
+
+#: prefs.js:503
+msgid "Dark"
+msgstr "深色"
+
+#: prefs.js:536
+msgid "Workspaces"
+msgstr "工作区"
+
+#: prefs.js:537
+msgid "Match when the current workspace is one of these"
+msgstr "当前工作区属于这些时匹配"
+
+#: prefs.js:554 prefs.js:733
+msgid "not set"
+msgstr "未设置"
+
+#: prefs.js:565 prefs.js:744
+msgid "Click to remove"
+msgstr "点击移除"
+
+#: prefs.js:584
+msgid "Add workspace"
+msgstr "添加工作区"
+
+#: prefs.js:603 prefs.js:784
+msgid "Add"
+msgstr "添加"
+
+#: prefs.js:617
+msgid "Workspace number:"
+msgstr "工作区编号："
+
+#: prefs.js:632
+msgid "Time of Day"
+msgstr "时间段"
+
+#: prefs.js:633
+msgid "Half-open range; from later than to wraps past midnight"
+msgstr "半开区间；起始晚于结束表示跨零点"
+
+#: prefs.js:712
+msgid "Applications"
+msgstr "应用程序"
+
+#: prefs.js:714
+msgid "Match when the focused window's wm_class contains any of these"
+msgstr "聚焦窗口的 wm_class 包含其中任一时匹配"
+
+#: prefs.js:763
+msgid "Add application"
+msgstr "添加应用"
+
+#: prefs.js:775
+msgid "wm_class, e.g. firefox"
+msgstr "wm_class，如 firefox"
+
+#: prefs.js:788
+msgid "Enter a value first."
+msgstr "请先输入内容。"
+
+#: prefs.js:825
+msgid "Recently seen:"
+msgstr "最近见过："
+
+#: prefs.js:849
+msgid "Trail Settings"
+msgstr "轨迹设置"
+
+#: prefs.js:851
+msgid "Switched-off rows are unset and inherit from lower-priority rules."
+msgstr "关闭的行处于未设置状态，将继承优先级更低的规则。"
+
+#: prefs.js:879 prefs.js:1063
+msgid "Inherits"
+msgstr "继承"
+
+#: prefs.js:924
+msgid "Fade Duration"
+msgstr "淡出时长"
+
+#: prefs.js:942
+msgid "Line Width"
+msgstr "线条宽度"
+
+#: prefs.js:956
+msgid "Render Mode"
+msgstr "渲染模式"
+
+#: prefs.js:977
+msgid "Color Mode"
+msgstr "颜色模式"
+
+#: prefs.js:990
+msgid "Trail Color"
+msgstr "轨迹颜色"
+
+#: prefs.js:1021
+msgid "Trail Transparency"
+msgstr "轨迹透明度"
+
+#: prefs.js:1031 prefs.js:1144
+msgid "Rainbow Configuration"
+msgstr "彩虹配置"
+
+#: prefs.js:1036
+msgid "Edit…"
+msgstr "编辑…"
+
+#: prefs.js:1054
+msgid "Requires a rainbow color mode"
+msgstr "需要彩虹颜色模式"
+
+#: prefs.js:1106
+msgid "Delete Profile"
+msgstr "删除配置"
+
+#: prefs.js:1107
+msgid "Remove this profile permanently"
+msgstr "永久移除此配置"
+
+#: prefs.js:1110 prefs.js:1119
+msgid "Delete"
+msgstr "删除"
+
+#: prefs.js:1117
+msgid "Delete Profile?"
+msgstr "删除配置？"
+
+#: prefs.js:1118
+msgid "This profile and its conditions will be removed."
+msgstr "此配置及其条件将被移除。"
+
+#: prefs.js:1125
+msgid "Profile deleted"
+msgstr "配置已删除"
+
+#: prefs.js:1151
+msgid "Save"
+msgstr "保存"

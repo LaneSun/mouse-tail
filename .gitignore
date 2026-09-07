@@ -12,3 +12,7 @@ mouse-tail.zip
 # IDEs
 .vscode/
 .idea/
+
+# ZCode agent artifacts
+.zcode/
+locale/

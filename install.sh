@@ -41,10 +41,15 @@ if [ -z "$UUID" ]; then
 fi
 info "Extension UUID: $UUID"
 
-# Compile the GSettings schema (the repo does not ship the compiled
-# artifact, so this is required or the extension will fail to load).
+# Compile the GSettings schema (idempotent; guarantees a fresh artifact
+# matching the installed glib version).
 info "Compiling settings schema..."
 glib-compile-schemas "$TMP_DIR/src/schemas"
+
+# Compile translations (optional: the script warns and continues
+# without them if msgfmt is missing).
+info "Compiling translations..."
+"$TMP_DIR/src/po/compile-locales.sh"
 
 # Swap into the install location
 TARGET_DIR="$HOME/.local/share/gnome-shell/extensions/$UUID"

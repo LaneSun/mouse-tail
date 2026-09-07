@@ -19,10 +19,11 @@
       <range min="1" max="20" />
     </key>
 
+    <!-- 以下扁平键仅作为一次性迁移源保留：迁移进 profiles 后不再被读取 -->
     <key name="color" type="ad">
       <default>[1.0, 1.0, 1.0]</default>
       <summary>Trail Color</summary>
-      <description>Color of the mouse trail as RGB values</description>
+      <description>Color of the mouse trail as RGB values (legacy flat key, migrated into the default profile)</description>
     </key>
 
     <key name="alpha" type="d">
@@ -73,6 +74,30 @@
       <default>"#FF6B6B 500\n#4ECDC4 500\n#FFE66D 500"</default>
       <summary>Time-Based Rainbow Configuration</summary>
       <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). All colors must have a time.</description>
+    </key>
+
+    <key name="profiles" type="s">
+      <default>"[]"</default>
+      <summary>Profiles</summary>
+      <description>JSON array of profiles. Each profile: {id, name, conditions{color-scheme,workspaces,time,wm-class}, settings{...}}. Specificity = number of set conditions; higher wins, ties broken by later list position. Unset settings fall through to lower-priority profiles, ending at factory defaults. The first profile (id "default") has no conditions and cannot be removed.</description>
+    </key>
+
+    <key name="active-profile" type="s">
+      <default>""</default>
+      <summary>Active Profile</summary>
+      <description>Written by the extension on every recompute: JSON {winner, effective} describing the currently applied profile name and effective settings. Read by the preferences dialog for status display and preview.</description>
+    </key>
+
+    <key name="profile-system-version" type="i">
+      <default>0</default>
+      <summary>Profile System Version</summary>
+      <description>Migration marker for the profile-based settings system. 0 = legacy flat keys not yet migrated.</description>
+    </key>
+
+    <key name="seen-wm-classes" type="s">
+      <default>"[]"</default>
+      <summary>Seen WM Classes</summary>
+      <description>JSON array of wm_class values observed by the extension, used to offer suggestions in the preferences dialog.</description>
     </key>
   </schema>
 </schemalist>
