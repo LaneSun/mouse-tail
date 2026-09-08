@@ -1,21 +1,16 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the mouse-tail package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: mouse-tail 1.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-15 09:58+0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"PO-Revision-Date: 2026-09-08 21:25+0800\n"
+"Last-Translator: Lane Sun <lanesun@anlbrain.com>\n"
+"Language-Team: German\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: prefs.js:39
 msgid ""
@@ -23,6 +18,9 @@ msgid ""
 "distance.\n"
 "Example: red for 50px, then green for 50px, then blue forever."
 msgstr ""
+"Format pro Zeile: #RRGGBB Abstand(px). Die letzte Farbe benötigt keinen "
+"Abstand.\n"
+"Beispiel: Rot für 50px, dann Grün für 50px, dann dauerhaft Blau."
 
 #: prefs.js:43
 msgid ""
@@ -30,150 +28,157 @@ msgid ""
 "automatically.\n"
 "Example: ratios 1, 1, 1 split the trail into three equal parts."
 msgstr ""
+"Format pro Zeile: #RRGGBB Verhältnis(positive Zahl). Werte werden "
+"automatisch normalisiert.\n"
+"Beispiel: Die Verhältnisse 1, 1, 1 teilen den Trail in drei gleiche Teile."
 
 #: prefs.js:47
 msgid ""
 "Format per line: #RRGGBB time(ms). All colors must have a time.\n"
 "Example: red for 500ms, then green for 500ms, then blue for 500ms."
 msgstr ""
+"Format pro Zeile: #RRGGBB Zeit(ms). Jede Farbe benötigt eine Zeit.\n"
+"Beispiel: Rot für 500ms, dann Grün für 500ms, dann Blau für 500ms."
 
 #: prefs.js:209
 msgid "Solid"
-msgstr ""
+msgstr "Einfarbig"
 
 #: prefs.js:210
 msgid "Fixed-length rainbow"
-msgstr ""
+msgstr "Regenbogen mit fester Länge"
 
 #: prefs.js:211
 msgid "Ratio rainbow"
-msgstr ""
+msgstr "Regenbogen nach Verhältnis"
 
 #: prefs.js:212
 msgid "Time-based rainbow"
-msgstr ""
+msgstr "Zeitbasierter Regenbogen"
 
 #: prefs.js:241 prefs.js:247
 msgid "Style"
-msgstr ""
+msgstr "Stil"
 
 #: prefs.js:249
 msgid ""
 "Pick a style. Each preview shows the trail on light and dark backgrounds."
 msgstr ""
+"Wählen Sie einen Stil. Jede Vorschau zeigt den Trail vor hellem und dunklem "
+"Hintergrund."
 
 #: prefs.js:264
 msgid "Basic"
-msgstr ""
+msgstr "Basic"
 
 #: prefs.js:265
 msgid "Spark"
-msgstr ""
+msgstr "Spark"
 
 #: prefs.js:266
 msgid "Aurora"
-msgstr ""
+msgstr "Aurora"
 
 #: prefs.js:312
 msgid "Custom"
-msgstr ""
+msgstr "Benutzerdefiniert"
 
 #: prefs.js:343
 msgid "Customize…"
-msgstr ""
+msgstr "Anpassen …"
 
 #: prefs.js:383
 msgid "Light"
-msgstr ""
+msgstr "Hell"
 
 #: prefs.js:391 prefs.js:404
 msgid "Dark"
-msgstr ""
+msgstr "Dunkel"
 
 #: prefs.js:403
 msgid "Default"
-msgstr ""
+msgstr "Standard"
 
 #: prefs.js:450 prefs.js:629
 msgid "Stop overriding in dark state"
-msgstr ""
+msgstr "Im dunklen Stil nicht mehr überschreiben"
 
 #: prefs.js:499
 msgid "Fade Duration"
-msgstr ""
+msgstr "Ausblenddauer"
 
 #: prefs.js:500
 msgid "How long the trail takes to fade out (milliseconds)"
-msgstr ""
+msgstr "Dauer, bis der Trail ausgeblendet ist (Millisekunden)"
 
 #: prefs.js:523
 msgid "Line Width"
-msgstr ""
+msgstr "Linienbreite"
 
 #: prefs.js:524
 msgid "Thickness of the mouse trail line"
-msgstr ""
+msgstr "Dicke der Trail-Linie"
 
 #: prefs.js:548
 msgid "Color Mode"
-msgstr ""
+msgstr "Farbmodus"
 
 #: prefs.js:549
 msgid "Choose a color mode for the mouse trail"
-msgstr ""
+msgstr "Farbmodus für den Trail wählen"
 
 #: prefs.js:566
 msgid "Trail Color"
-msgstr ""
+msgstr "Trail-Farbe"
 
 #: prefs.js:567
 msgid "Color of the mouse trail"
-msgstr ""
+msgstr "Farbe des Maus-Trails"
 
 #: prefs.js:603
 msgid "Trail Transparency"
-msgstr ""
+msgstr "Trail-Transparenz"
 
 #: prefs.js:604
 msgid "Opacity level of the mouse trail"
-msgstr ""
+msgstr "Deckkraft des Maus-Trails"
 
 #: prefs.js:618 prefs.js:743
 msgid "Rainbow Configuration"
-msgstr ""
+msgstr "Regenbogen-Konfiguration"
 
 #: prefs.js:619
 msgid "Color stops used by rainbow color modes"
-msgstr ""
+msgstr "Farbstopps der Regenbogen-Farbmodi"
 
 #: prefs.js:622
 msgid "Edit…"
-msgstr ""
+msgstr "Bearbeiten …"
 
 #: prefs.js:674
 msgid "Requires a rainbow color mode"
-msgstr ""
+msgstr "Erfordert einen Regenbogen-Farbmodus"
 
 #: prefs.js:695 prefs.js:703
 msgid "Delete Style"
-msgstr ""
+msgstr "Stil löschen"
 
 #: prefs.js:704
 msgid "This custom style will be removed."
-msgstr ""
+msgstr "Dieser benutzerdefinierte Stil wird entfernt."
 
 #: prefs.js:706
 msgid "Cancel"
-msgstr ""
+msgstr "Abbrechen"
 
 #: prefs.js:707
 msgid "Delete"
-msgstr ""
+msgstr "Löschen"
 
 #: prefs.js:730
 msgid "Customize Style"
-msgstr ""
+msgstr "Stil anpassen"
 
 #: prefs.js:750
 msgid "Save"
-msgstr ""
+msgstr "Speichern"
