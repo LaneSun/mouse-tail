@@ -8,22 +8,20 @@ import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
 import {
-  parseProfiles,
-  effectiveSettings,
-  ensureMigrated,
+  readStyleState,
+  effectiveFor,
+  ensureStyleMigrated,
   parseRainbowStops,
   timeColorAt,
-  collectTimeBoundaries,
-} from "./profileEngine.js";
+} from "./styleEngine.js";
 
 import { drawTrail, calculatePointColors } from "./trailRender.js";
 
 export default class MouseTrailExtension extends Extension {
   enable() {
     this._settings = this.getSettings();
-    ensureMigrated(this._settings);
-    this._profiles = parseProfiles(this._settings.get_string("profiles"));
-    this._activeProfileInfo = "";
+    ensureStyleMigrated(this._settings);
+    this._style = readStyleState(this._settings);
 
     this._points = [];
     // 画布原点（轨迹包围盒左上角）
@@ -59,7 +57,7 @@ export default class MouseTrailExtension extends Extension {
       global.stage.set_child_above_sibling(this._cont, null);
     });
 
-    // —— 上下文采集：任一条件输入变化都触发级联重算 ——
+    // —— 样式状态监听：系统配色方案或两个样式键任一变化即重算 ——
     // St.Settings 单例：新版 shell 静态方法为 get()，旧版为 get_default()
     this._stSettings = St.Settings.get
       ? St.Settings.get()
@@ -69,33 +67,17 @@ export default class MouseTrailExtension extends Extension {
       () => this._recompute(),
     );
 
-    this._workspaceManager = global.workspace_manager;
-    this._workspaceSwitchedId = this._workspaceManager.connect(
-      "workspace-switched",
-      () => this._recompute(),
-    );
-
-    this._seenWmClasses = new Set(
-      JSON.parse(this._settings.get_string("seen-wm-classes") || "[]"),
-    );
-    this._focusWindowId = global.display.connect("notify::focus-window", () =>
-      this._onFocusChanged(),
-    );
-    this._onFocusChanged();
-
-    this._profilesChangedId = this._settings.connect(
-      "changed::profiles",
-      () => {
-        this._profiles = parseProfiles(
-          this._settings.get_string("profiles"),
-        );
-        this._scheduleTimeCheck();
+    this._styleKeysIds = [
+      "style-defaults",
+      "style-dark-overrides",
+    ].map((key) =>
+      this._settings.connect(`changed::${key}`, () => {
+        this._style = readStyleState(this._settings);
         this._recompute();
-      },
+      }),
     );
 
     this._recompute();
-    this._scheduleTimeCheck();
 
     this._pointerWatcher = getPointerWatcher();
     this.update_pointer_watcher();
@@ -146,7 +128,7 @@ export default class MouseTrailExtension extends Extension {
     );
   }
 
-  // 系统配色方案 → 条件值。DEFAULT/PREFER_LIGHT 视为浅色（与 libadwaita
+  // 系统配色方案判定。DEFAULT/PREFER_LIGHT 视为浅色（与 libadwaita
   // 一致）；旧版 shell 枚举中的 LIGHT/DARK 一并归入，GNOME 50 已移除
   // 这两个值（undefined，比较恒为 false）。
   _isDarkSystem() {
@@ -158,84 +140,18 @@ export default class MouseTrailExtension extends Extension {
     );
   }
 
-  _buildContext() {
-    const d = new Date();
-    return {
-      workspace: this._workspaceManager.get_active_workspace_index(),
-      colorScheme: this._isDarkSystem() ? "dark" : "light",
-      minuteOfDay: d.getHours() * 60 + d.getMinutes(),
-      wmClass: global.display.get_focus_window()?.get_wm_class() ?? null,
-    };
-  }
-
-  _onFocusChanged() {
-    const wm = global.display.get_focus_window()?.get_wm_class();
-    if (wm && !this._seenWmClasses.has(wm)) {
-      this._seenWmClasses.add(wm);
-      // 上限 60 条，超出时丢弃最旧的
-      if (this._seenWmClasses.size > 60) {
-        const arr = [...this._seenWmClasses];
-        this._seenWmClasses = new Set(arr.slice(arr.length - 60));
-      }
-      this._settings.set_string(
-        "seen-wm-classes",
-        JSON.stringify([...this._seenWmClasses]),
-      );
-    }
-    this._recompute();
-  }
-
-  // 级联重算：条件命中 → 补丁叠加 → 应用到渲染字段
+  // 样式重算：默认补丁 +（暗色时）覆盖补丁 → 应用到渲染字段
   _recompute() {
-    const { effective, winner } = effectiveSettings(
-      this._profiles,
-      this._buildContext(),
-    );
+    const effective = effectiveFor(this._style, this._isDarkSystem());
 
     this._fadeLength = effective["fade-duration"];
     this._lineWidth = effective["line-width"];
     this._colorArray = effective["color"];
     this._alpha = effective["alpha"];
-    this._renderMode = effective["render-mode"];
     this._colorMode = effective["color-mode"];
     this._parseRainbowConfig(effective);
 
-    // 供 prefs 显示当前生效规则与预览；仅在变化时写入避免抖动
-    const info = JSON.stringify({ winner: winner?.name ?? "", effective });
-    if (info !== this._activeProfileInfo) {
-      this._activeProfileInfo = info;
-      this._settings.set_string("active-profile", info);
-    }
-
     this._drawingLayer?.queue_repaint();
-  }
-
-  // 调度到最近一个时间条件边界后再重算（跨零点由 1440 取模处理）
-  _scheduleTimeCheck() {
-    if (this._timeCheckId) {
-      GLib.Source.remove(this._timeCheckId);
-      this._timeCheckId = null;
-    }
-    const boundaries = collectTimeBoundaries(this._profiles);
-    if (boundaries.length === 0) return;
-
-    const d = new Date();
-    const nowMin = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
-    let delayMin = Infinity;
-    for (const b of boundaries) {
-      const diff = (((b - nowMin) % 1440) + 1440) % 1440;
-      if (diff < delayMin) delayMin = diff;
-    }
-    this._timeCheckId = GLib.timeout_add_seconds(
-      GLib.PRIORITY_DEFAULT,
-      Math.max(1, Math.round(delayMin * 60) + 1),
-      () => {
-        this._timeCheckId = null;
-        this._recompute();
-        this._scheduleTimeCheck();
-        return GLib.SOURCE_REMOVE;
-      },
-    );
   }
 
   _tick() {
@@ -287,34 +203,16 @@ export default class MouseTrailExtension extends Extension {
   }
 
   disable() {
-    if (this._timeCheckId) {
-      GLib.Source.remove(this._timeCheckId);
-      this._timeCheckId = null;
-    }
-
     if (this._colorSchemeId) {
       this._stSettings.disconnect(this._colorSchemeId);
       this._colorSchemeId = null;
     }
     this._stSettings = null;
 
-    if (this._workspaceSwitchedId) {
-      this._workspaceManager.disconnect(this._workspaceSwitchedId);
-      this._workspaceSwitchedId = null;
+    for (const id of this._styleKeysIds ?? []) {
+      this._settings?.disconnect(id);
     }
-    this._workspaceManager = null;
-
-    if (this._focusWindowId) {
-      global.display.disconnect(this._focusWindowId);
-      this._focusWindowId = null;
-    }
-
-    if (this._profilesChangedId) {
-      this._settings.disconnect(this._profilesChangedId);
-      this._profilesChangedId = null;
-    }
-    this._settings?.set_string("active-profile", "");
-    this._activeProfileInfo = "";
+    this._styleKeysIds = null;
 
     if (this._timeoutId) {
       GLib.Source.remove(this._timeoutId);
@@ -351,7 +249,7 @@ export default class MouseTrailExtension extends Extension {
     }
 
     this._points = [];
-    this._profiles = null;
+    this._style = null;
 
     this._settings = null;
   }
@@ -408,7 +306,6 @@ export default class MouseTrailExtension extends Extension {
     drawTrail(cr, pts, {
       size: this._lineWidth,
       fadeLength: this._fadeLength,
-      renderMode: this._renderMode,
       colorMode,
       color: this._colorArray,
       alpha: this._alpha,

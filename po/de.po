@@ -3,14 +3,14 @@ msgstr ""
 "Project-Id-Version: mouse-tail 1.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-09-08 20:34+0800\n"
-"PO-Revision-Date: 2026-09-08 10:47+0800\n"
+"PO-Revision-Date: 2026-09-08 21:25+0800\n"
 "Last-Translator: Lane Sun <lanesun@anlbrain.com>\n"
-"Language-Team: Chinese (Simplified)\n"
-"Language: zh_CN\n"
+"Language-Team: German\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: prefs.js:35
 msgid ""
@@ -18,8 +18,9 @@ msgid ""
 "distance.\n"
 "Example: red for 50px, then green for 50px, then blue forever."
 msgstr ""
-"每行格式：#RRGGBB 距离(px)。最后一个颜色不需要距离。\n"
-"示例：红色 50px，然后绿色 50px，之后一直是蓝色。"
+"Format pro Zeile: #RRGGBB Abstand(px). Die letzte Farbe benötigt keinen "
+"Abstand.\n"
+"Beispiel: Rot für 50px, dann Grün für 50px, dann dauerhaft Blau."
 
 #: prefs.js:39
 msgid ""
@@ -27,143 +28,141 @@ msgid ""
 "automatically.\n"
 "Example: ratios 1, 1, 1 split the trail into three equal parts."
 msgstr ""
-"每行格式：#RRGGBB 比例(正数)。数值会自动归一化。\n"
-"示例：比例 1、1、1 将轨迹均分为三段。"
+"Format pro Zeile: #RRGGBB Verhältnis(positive Zahl). Werte werden "
+"automatisch normalisiert.\n"
+"Beispiel: Die Verhältnisse 1, 1, 1 teilen den Trail in drei gleiche Teile."
 
 #: prefs.js:43
 msgid ""
 "Format per line: #RRGGBB time(ms). All colors must have a time.\n"
 "Example: red for 500ms, then green for 500ms, then blue for 500ms."
 msgstr ""
-"每行格式：#RRGGBB 时间(ms)。每个颜色都必须有时间。\n"
-"示例：红色 500ms，然后绿色 500ms，然后蓝色 500ms。"
+"Format pro Zeile: #RRGGBB Zeit(ms). Jede Farbe benötigt eine Zeit.\n"
+"Beispiel: Rot für 500ms, dann Grün für 500ms, dann Blau für 500ms."
 
 #: prefs.js:199
 msgid "Solid"
-msgstr "纯色"
+msgstr "Einfarbig"
 
 #: prefs.js:200
 msgid "Fixed-length rainbow"
-msgstr "定长彩虹"
+msgstr "Regenbogen mit fester Länge"
 
 #: prefs.js:201
 msgid "Ratio rainbow"
-msgstr "比例彩虹"
+msgstr "Regenbogen nach Verhältnis"
 
 #: prefs.js:202
 msgid "Time-based rainbow"
-msgstr "时间彩虹"
+msgstr "Zeitbasierter Regenbogen"
 
 #: prefs.js:224 prefs.js:230
 msgid "Style"
-msgstr "样式"
+msgstr "Stil"
 
 #: prefs.js:232
 msgid ""
 "Pick a style. Each preview shows the trail on light and dark backgrounds."
 msgstr ""
-"选择一个样式。每个预览上半为白色背景、下半为黑色背景，分别展示浅色与暗色下的"
-"效果。"
+"Wählen Sie einen Stil. Jede Vorschau zeigt den Trail vor hellem und dunklem "
+"Hintergrund."
 
 #: prefs.js:247
 msgid "Basic"
-msgstr "基础"
+msgstr "Basic"
 
 #: prefs.js:248
 msgid "Spark"
-msgstr "火花"
+msgstr "Spark"
 
 #: prefs.js:249
 msgid "Aurora"
-msgstr "极光"
+msgstr "Aurora"
 
 #: prefs.js:293
 msgid "Custom"
-msgstr "自定义"
+msgstr "Benutzerdefiniert"
 
 #: prefs.js:313
 msgid "Customize…"
-msgstr "自定义…"
+msgstr "Anpassen …"
 
 #: prefs.js:326
 msgid "Customize Style"
-msgstr "自定义样式"
+msgstr "Stil anpassen"
 
 #: prefs.js:346
 msgid "Light"
-msgstr "浅色"
+msgstr "Hell"
 
 #: prefs.js:354 prefs.js:367
 msgid "Dark"
-msgstr "暗色"
+msgstr "Dunkel"
 
 #: prefs.js:366
 msgid "Default"
-msgstr "默认"
+msgstr "Standard"
 
 #: prefs.js:412 prefs.js:590
 msgid "Stop overriding in dark state"
-msgstr "取消暗色状态下的覆盖"
+msgstr "Im dunklen Stil nicht mehr überschreiben"
 
 #: prefs.js:461
 msgid "Fade Duration"
-msgstr "淡出时长"
+msgstr "Ausblenddauer"
 
 #: prefs.js:462
 msgid "How long the trail takes to fade out (milliseconds)"
-msgstr "轨迹淡出所需的时长（毫秒）"
+msgstr "Dauer, bis der Trail ausgeblendet ist (Millisekunden)"
 
 #: prefs.js:485
 msgid "Line Width"
-msgstr "线条宽度"
+msgstr "Linienbreite"
 
 #: prefs.js:486
 msgid "Thickness of the mouse trail line"
-msgstr "轨迹线条的粗细"
+msgstr "Dicke der Trail-Linie"
 
 #: prefs.js:510
 msgid "Color Mode"
-msgstr "颜色模式"
+msgstr "Farbmodus"
 
 #: prefs.js:511
 msgid "Choose a color mode for the mouse trail"
-msgstr "选择轨迹的颜色模式"
+msgstr "Farbmodus für den Trail wählen"
 
 #: prefs.js:528
 msgid "Trail Color"
-msgstr "轨迹颜色"
+msgstr "Trail-Farbe"
 
 #: prefs.js:529
 msgid "Color of the mouse trail"
-msgstr "轨迹的颜色"
+msgstr "Farbe des Maus-Trails"
 
 #: prefs.js:565
 msgid "Trail Transparency"
-msgstr "轨迹透明度"
+msgstr "Trail-Transparenz"
 
 #: prefs.js:566
 msgid "Opacity level of the mouse trail"
-msgstr "轨迹的不透明程度"
+msgstr "Deckkraft des Maus-Trails"
 
 #: prefs.js:579 prefs.js:663
 msgid "Rainbow Configuration"
-msgstr "彩虹配置"
+msgstr "Regenbogen-Konfiguration"
 
 #: prefs.js:580
 msgid "Color stops used by rainbow color modes"
-msgstr "彩虹颜色模式所使用的颜色节点"
+msgstr "Farbstopps der Regenbogen-Farbmodi"
 
 #: prefs.js:583
 msgid "Edit…"
-msgstr "编辑…"
+msgstr "Bearbeiten …"
 
 #: prefs.js:635
 msgid "Requires a rainbow color mode"
-msgstr "需要彩虹颜色模式"
+msgstr "Erfordert einen Regenbogen-Farbmodus"
 
 #: prefs.js:670
 msgid "Save"
-msgstr "保存"
-
-#~ msgid "Precise"
-#~ msgstr "精确"
+msgstr "Speichern"

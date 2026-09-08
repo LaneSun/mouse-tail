@@ -11,7 +11,7 @@ FILES=(
     "extension.js"
     "metadata.json"
     "prefs.js"
-    "profileEngine.js"
+    "styleEngine.js"
     "trailRender.js"
     "LICENSE"
     "README.md"

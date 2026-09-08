@@ -19,7 +19,7 @@
       <range min="1" max="20" />
     </key>
 
-    <!-- 以下扁平键仅作为一次性迁移源保留：迁移进 profiles 后不再被读取 -->
+    <!-- 以下扁平键仅作为一次性迁移源保留：迁移进样式默认补丁后不再被读取 -->
     <key name="color" type="ad">
       <default>[1.0, 1.0, 1.0]</default>
       <summary>Trail Color</summary>
@@ -32,18 +32,6 @@
       <description
             >Transparency level of the mouse trail (0.0 = transparent, 1.0 = opaque)</description>
       <range min="0.0" max="1.0" />
-    </key>
-
-    <key name="render-mode" type="s">
-      <default>"precise"</default>
-      <summary>Render Mode</summary>
-      <description
-            >Rendering mode for the mouse trail: "precise" for segmented smooth curves, "balance" for unified smooth curves, or "fast" for simple lines</description>
-      <choices>
-        <choice value="precise" />
-        <choice value="balance" />
-        <choice value="fast" />
-      </choices>
     </key>
 
     <key name="color-mode" type="s">
@@ -76,28 +64,22 @@
       <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). All colors must have a time.</description>
     </key>
 
-    <key name="profiles" type="s">
-      <default>"[]"</default>
-      <summary>Profiles</summary>
-      <description>JSON array of profiles. Each profile: {id, name, conditions{color-scheme,workspaces,time,wm-class}, settings{...}}. Specificity = number of set conditions; higher wins, ties broken by later list position. Unset settings fall through to lower-priority profiles, ending at factory defaults. The first profile (id "default") has no conditions and cannot be removed.</description>
+    <key name="style-defaults" type="s">
+      <default>"{}"</default>
+      <summary>Style Defaults</summary>
+      <description>JSON patch of settings applied in the default (light) state, relative to factory defaults. Empty patch equals the Classic preset.</description>
     </key>
 
-    <key name="active-profile" type="s">
-      <default>""</default>
-      <summary>Active Profile</summary>
-      <description>Written by the extension on every recompute: JSON {winner, effective} describing the currently applied profile name and effective settings. Read by the preferences dialog for status display and preview.</description>
+    <key name="style-dark-overrides" type="s">
+      <default>"{}"</default>
+      <summary>Style Dark Overrides</summary>
+      <description>JSON patch of settings applied on top of the defaults while the system uses a dark style. Empty patch means dark behaves identically to light.</description>
     </key>
 
-    <key name="profile-system-version" type="i">
+    <key name="settings-version" type="i">
       <default>0</default>
-      <summary>Profile System Version</summary>
-      <description>Migration marker for the profile-based settings system. 0 = legacy flat keys not yet migrated.</description>
-    </key>
-
-    <key name="seen-wm-classes" type="s">
-      <default>"[]"</default>
-      <summary>Seen WM Classes</summary>
-      <description>JSON array of wm_class values observed by the extension, used to offer suggestions in the preferences dialog.</description>
+      <summary>Settings Version</summary>
+      <description>Migration marker for the style-based settings system. 0 = legacy flat keys not yet migrated.</description>
     </key>
   </schema>
 </schemalist>

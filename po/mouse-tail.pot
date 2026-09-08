@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mouse-tail 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-07 13:15+0800\n"
+"POT-Creation-Date: 2026-09-08 20:34+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,333 +16,148 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: prefs.js:34
+#: prefs.js:35
 msgid ""
 "Format per line: #RRGGBB distance(px). The last color does not need a "
 "distance.\n"
 "Example: red for 50px, then green for 50px, then blue forever."
 msgstr ""
 
-#: prefs.js:38
+#: prefs.js:39
 msgid ""
 "Format per line: #RRGGBB ratio(positive number). Values are normalized "
 "automatically.\n"
 "Example: ratios 1, 1, 1 split the trail into three equal parts."
 msgstr ""
 
-#: prefs.js:42
+#: prefs.js:43
 msgid ""
 "Format per line: #RRGGBB time(ms). All colors must have a time.\n"
 "Example: red for 500ms, then green for 500ms, then blue for 500ms."
 msgstr ""
 
-#: prefs.js:81
-msgid "Cancel"
-msgstr ""
-
-#: prefs.js:186
-msgid "Precise"
-msgstr ""
-
-#: prefs.js:187
-msgid "Balance"
-msgstr ""
-
-#: prefs.js:188
-msgid "Fast"
-msgstr ""
-
-#: prefs.js:191
+#: prefs.js:199
 msgid "Solid"
 msgstr ""
 
-#: prefs.js:192
+#: prefs.js:200
 msgid "Fixed-length rainbow"
 msgstr ""
 
-#: prefs.js:193
+#: prefs.js:201
 msgid "Ratio rainbow"
 msgstr ""
 
-#: prefs.js:194
+#: prefs.js:202
 msgid "Time-based rainbow"
 msgstr ""
 
-#: prefs.js:216
-msgid "color stops"
+#: prefs.js:224 prefs.js:230
+msgid "Style"
 msgstr ""
 
-#: prefs.js:224
-msgid "Default"
-msgstr ""
-
-#: prefs.js:226
-msgid "Untitled"
-msgstr ""
-
-#: prefs.js:239 prefs.js:284
-msgid "Profiles"
-msgstr ""
-
-#: prefs.js:252
-msgid "Waiting for the extension…"
-msgstr ""
-
-#: prefs.js:268
-msgid "Currently Active"
-msgstr ""
-
-#: prefs.js:273
-msgid "Extension is disabled — showing local preview"
-msgstr ""
-
-#: prefs.js:286
+#: prefs.js:232
 msgid ""
-"Rules with more active conditions take priority. Options left unset fall "
-"through to lower-priority rules."
+"Pick a style. Each preview shows the trail on light and dark backgrounds."
 msgstr ""
 
-#: prefs.js:296
-msgid "Base settings — always applies"
+#: prefs.js:247
+msgid "Basic"
 msgstr ""
 
-#: prefs.js:300
-msgid "Dark style"
+#: prefs.js:248
+msgid "Spark"
 msgstr ""
 
-#: prefs.js:300
-msgid "Light style"
+#: prefs.js:249
+msgid "Aurora"
 msgstr ""
 
-#: prefs.js:303
-msgid "Workspace"
-msgid_plural "Workspaces"
-msgstr[0] ""
-msgstr[1] ""
-
-#: prefs.js:310
-msgid "No conditions (always applies)"
+#: prefs.js:293
+msgid "Custom"
 msgstr ""
 
-#: prefs.js:329
-msgid "Number of conditions (higher = higher priority)"
+#: prefs.js:313
+msgid "Customize…"
 msgstr ""
 
-#: prefs.js:340
-msgid "Increase priority among equal-specificity rules"
+#: prefs.js:326
+msgid "Customize Style"
 msgstr ""
 
-#: prefs.js:368
-msgid "New Profile"
-msgstr ""
-
-#: prefs.js:374
-msgid "New profile"
-msgstr ""
-
-#: prefs.js:392
-msgid "Reset to Defaults"
-msgstr ""
-
-#: prefs.js:393
-msgid "Restore all profiles to factory settings"
-msgstr ""
-
-#: prefs.js:396 prefs.js:407
-msgid "Reset"
-msgstr ""
-
-#: prefs.js:403
-msgid "Reset All Profiles?"
-msgstr ""
-
-#: prefs.js:405
-msgid "All profiles and their settings will be restored to factory defaults."
-msgstr ""
-
-#: prefs.js:412
-msgid "Profiles reset to factory defaults"
-msgstr ""
-
-#: prefs.js:455
-msgid "Name"
-msgstr ""
-
-#: prefs.js:469
-msgid "Apply When"
-msgstr ""
-
-#: prefs.js:471
-msgid ""
-"More active conditions = higher priority. An empty list or a switched-off "
-"row means the condition is not set."
-msgstr ""
-
-#: prefs.js:478
-msgid "Priority"
-msgstr ""
-
-#: prefs.js:492
-msgid "Lowest — matches everything"
-msgstr ""
-
-#: prefs.js:493
-#, javascript-format
-msgid "1 condition"
-msgid_plural "%d conditions"
-msgstr[0] ""
-msgstr[1] ""
-
-#: prefs.js:499
-msgid "System Style"
-msgstr ""
-
-#: prefs.js:500
-msgid "Match the GNOME light/dark style"
-msgstr ""
-
-#: prefs.js:503
+#: prefs.js:346
 msgid "Light"
 msgstr ""
 
-#: prefs.js:503
+#: prefs.js:354 prefs.js:367
 msgid "Dark"
 msgstr ""
 
-#: prefs.js:536
-msgid "Workspaces"
+#: prefs.js:366
+msgid "Default"
 msgstr ""
 
-#: prefs.js:537
-msgid "Match when the current workspace is one of these"
+#: prefs.js:412 prefs.js:590
+msgid "Stop overriding in dark state"
 msgstr ""
 
-#: prefs.js:554 prefs.js:733
-msgid "not set"
-msgstr ""
-
-#: prefs.js:565 prefs.js:744
-msgid "Click to remove"
-msgstr ""
-
-#: prefs.js:584
-msgid "Add workspace"
-msgstr ""
-
-#: prefs.js:603 prefs.js:784
-msgid "Add"
-msgstr ""
-
-#: prefs.js:617
-msgid "Workspace number:"
-msgstr ""
-
-#: prefs.js:632
-msgid "Time of Day"
-msgstr ""
-
-#: prefs.js:633
-msgid "Half-open range; from later than to wraps past midnight"
-msgstr ""
-
-#: prefs.js:712
-msgid "Applications"
-msgstr ""
-
-#: prefs.js:714
-msgid "Match when the focused window's wm_class contains any of these"
-msgstr ""
-
-#: prefs.js:763
-msgid "Add application"
-msgstr ""
-
-#: prefs.js:775
-msgid "wm_class, e.g. firefox"
-msgstr ""
-
-#: prefs.js:788
-msgid "Enter a value first."
-msgstr ""
-
-#: prefs.js:825
-msgid "Recently seen:"
-msgstr ""
-
-#: prefs.js:849
-msgid "Trail Settings"
-msgstr ""
-
-#: prefs.js:851
-msgid "Switched-off rows are unset and inherit from lower-priority rules."
-msgstr ""
-
-#: prefs.js:879 prefs.js:1063
-msgid "Inherits"
-msgstr ""
-
-#: prefs.js:924
+#: prefs.js:461
 msgid "Fade Duration"
 msgstr ""
 
-#: prefs.js:942
+#: prefs.js:462
+msgid "How long the trail takes to fade out (milliseconds)"
+msgstr ""
+
+#: prefs.js:485
 msgid "Line Width"
 msgstr ""
 
-#: prefs.js:956
-msgid "Render Mode"
+#: prefs.js:486
+msgid "Thickness of the mouse trail line"
 msgstr ""
 
-#: prefs.js:977
+#: prefs.js:510
 msgid "Color Mode"
 msgstr ""
 
-#: prefs.js:990
+#: prefs.js:511
+msgid "Choose a color mode for the mouse trail"
+msgstr ""
+
+#: prefs.js:528
 msgid "Trail Color"
 msgstr ""
 
-#: prefs.js:1021
+#: prefs.js:529
+msgid "Color of the mouse trail"
+msgstr ""
+
+#: prefs.js:565
 msgid "Trail Transparency"
 msgstr ""
 
-#: prefs.js:1031 prefs.js:1144
+#: prefs.js:566
+msgid "Opacity level of the mouse trail"
+msgstr ""
+
+#: prefs.js:579 prefs.js:663
 msgid "Rainbow Configuration"
 msgstr ""
 
-#: prefs.js:1036
+#: prefs.js:580
+msgid "Color stops used by rainbow color modes"
+msgstr ""
+
+#: prefs.js:583
 msgid "Edit…"
 msgstr ""
 
-#: prefs.js:1054
+#: prefs.js:635
 msgid "Requires a rainbow color mode"
 msgstr ""
 
-#: prefs.js:1106
-msgid "Delete Profile"
-msgstr ""
-
-#: prefs.js:1107
-msgid "Remove this profile permanently"
-msgstr ""
-
-#: prefs.js:1110 prefs.js:1119
-msgid "Delete"
-msgstr ""
-
-#: prefs.js:1117
-msgid "Delete Profile?"
-msgstr ""
-
-#: prefs.js:1118
-msgid "This profile and its conditions will be removed."
-msgstr ""
-
-#: prefs.js:1125
-msgid "Profile deleted"
-msgstr ""
-
-#: prefs.js:1151
+#: prefs.js:670
 msgid "Save"
 msgstr ""
