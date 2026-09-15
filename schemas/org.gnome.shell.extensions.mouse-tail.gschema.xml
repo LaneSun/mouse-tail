@@ -19,10 +19,13 @@
       <range min="1" max="20" />
     </key>
 
+    <!-- The flat keys below are kept only as the one-time migration
+         source; once migrated into the style-defaults patch they are no
+         longer read. -->
     <key name="color" type="ad">
       <default>[1.0, 1.0, 1.0]</default>
       <summary>Trail Color</summary>
-      <description>Color of the mouse trail as RGB values</description>
+      <description>Color of the mouse trail as RGB values (legacy flat key, migrated into the default profile)</description>
     </key>
 
     <key name="alpha" type="d">
@@ -31,18 +34,6 @@
       <description
             >Transparency level of the mouse trail (0.0 = transparent, 1.0 = opaque)</description>
       <range min="0.0" max="1.0" />
-    </key>
-
-    <key name="render-mode" type="s">
-      <default>"precise"</default>
-      <summary>Render Mode</summary>
-      <description
-            >Rendering mode for the mouse trail: "precise" for segmented smooth curves, "balance" for unified smooth curves, or "fast" for simple lines</description>
-      <choices>
-        <choice value="precise" />
-        <choice value="balance" />
-        <choice value="fast" />
-      </choices>
     </key>
 
     <key name="color-mode" type="s">
@@ -73,6 +64,36 @@
       <default>"#FF6B6B 500\n#4ECDC4 500\n#FFE66D 500"</default>
       <summary>Time-Based Rainbow Configuration</summary>
       <description>Configuration for time-based rainbow mode. Each line: #RRGGBB time(ms). All colors must have a time.</description>
+    </key>
+
+    <key name="style-defaults" type="s">
+      <default>"{}"</default>
+      <summary>Style Defaults</summary>
+      <description>JSON patch of settings applied in the default (light) state, relative to factory defaults. Empty patch equals the Classic preset.</description>
+    </key>
+
+    <key name="style-dark-overrides" type="s">
+      <default>"{}"</default>
+      <summary>Style Dark Overrides</summary>
+      <description>JSON patch of settings applied on top of the defaults while the system uses a dark style. Empty patch means dark behaves identically to light.</description>
+    </key>
+
+    <key name="custom-styles" type="s">
+      <default>"[]"</default>
+      <summary>Custom Styles</summary>
+      <description>JSON list of user-created styles, each {id, defaults, dark}, where defaults/dark are patches relative to factory defaults.</description>
+    </key>
+
+    <key name="active-style" type="s">
+      <default>"basic"</default>
+      <summary>Active Style</summary>
+      <description>Id of the currently selected style: a built-in preset id or a custom style id.</description>
+    </key>
+
+    <key name="settings-version" type="i">
+      <default>0</default>
+      <summary>Settings Version</summary>
+      <description>Migration marker for the style-based settings system. 0 = legacy flat keys not yet migrated.</description>
     </key>
   </schema>
 </schemalist>

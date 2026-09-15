@@ -1,0 +1,185 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: mouse-tail 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-15 09:58+0800\n"
+"PO-Revision-Date: 2026-09-08 10:47+0800\n"
+"Last-Translator: Lane Sun <lanesun@anlbrain.com>\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: prefs.js:39
+msgid ""
+"Format per line: #RRGGBB distance(px). The last color does not need a "
+"distance.\n"
+"Example: red for 50px, then green for 50px, then blue forever."
+msgstr ""
+"每行格式：#RRGGBB 距离(px)。最后一个颜色不需要距离。\n"
+"示例：红色 50px，然后绿色 50px，之后一直是蓝色。"
+
+#: prefs.js:43
+msgid ""
+"Format per line: #RRGGBB ratio(positive number). Values are normalized "
+"automatically.\n"
+"Example: ratios 1, 1, 1 split the trail into three equal parts."
+msgstr ""
+"每行格式：#RRGGBB 比例(正数)。数值会自动归一化。\n"
+"示例：比例 1、1、1 将轨迹均分为三段。"
+
+#: prefs.js:47
+msgid ""
+"Format per line: #RRGGBB time(ms). All colors must have a time.\n"
+"Example: red for 500ms, then green for 500ms, then blue for 500ms."
+msgstr ""
+"每行格式：#RRGGBB 时间(ms)。每个颜色都必须有时间。\n"
+"示例：红色 500ms，然后绿色 500ms，然后蓝色 500ms。"
+
+#: prefs.js:209
+msgid "Solid"
+msgstr "纯色"
+
+#: prefs.js:210
+msgid "Fixed-length rainbow"
+msgstr "定长彩虹"
+
+#: prefs.js:211
+msgid "Ratio rainbow"
+msgstr "比例彩虹"
+
+#: prefs.js:212
+msgid "Time-based rainbow"
+msgstr "时间彩虹"
+
+#: prefs.js:241 prefs.js:247
+msgid "Style"
+msgstr "样式"
+
+#: prefs.js:249
+msgid ""
+"Pick a style. Each preview shows the trail on light and dark backgrounds."
+msgstr ""
+"选择一个样式。每个预览上半为白色背景、下半为黑色背景，分别展示浅色与暗色下的"
+"效果。"
+
+#: prefs.js:264
+msgid "Basic"
+msgstr "基础"
+
+#: prefs.js:265
+msgid "Spark"
+msgstr "火花"
+
+#: prefs.js:266
+msgid "Aurora"
+msgstr "极光"
+
+#: prefs.js:312
+msgid "Custom"
+msgstr "自定义"
+
+#: prefs.js:343
+msgid "Customize…"
+msgstr "自定义…"
+
+#: prefs.js:383
+msgid "Light"
+msgstr "浅色"
+
+#: prefs.js:391 prefs.js:404
+msgid "Dark"
+msgstr "暗色"
+
+#: prefs.js:403
+msgid "Default"
+msgstr "默认"
+
+#: prefs.js:450 prefs.js:629
+msgid "Stop overriding in dark state"
+msgstr "取消暗色状态下的覆盖"
+
+#: prefs.js:499
+msgid "Fade Duration"
+msgstr "淡出时长"
+
+#: prefs.js:500
+msgid "How long the trail takes to fade out (milliseconds)"
+msgstr "轨迹淡出所需的时长（毫秒）"
+
+#: prefs.js:523
+msgid "Line Width"
+msgstr "线条宽度"
+
+#: prefs.js:524
+msgid "Thickness of the mouse trail line"
+msgstr "轨迹线条的粗细"
+
+#: prefs.js:548
+msgid "Color Mode"
+msgstr "颜色模式"
+
+#: prefs.js:549
+msgid "Choose a color mode for the mouse trail"
+msgstr "选择轨迹的颜色模式"
+
+#: prefs.js:566
+msgid "Trail Color"
+msgstr "轨迹颜色"
+
+#: prefs.js:567
+msgid "Color of the mouse trail"
+msgstr "轨迹的颜色"
+
+#: prefs.js:603
+msgid "Trail Transparency"
+msgstr "轨迹透明度"
+
+#: prefs.js:604
+msgid "Opacity level of the mouse trail"
+msgstr "轨迹的不透明程度"
+
+#: prefs.js:618 prefs.js:743
+msgid "Rainbow Configuration"
+msgstr "彩虹配置"
+
+#: prefs.js:619
+msgid "Color stops used by rainbow color modes"
+msgstr "彩虹颜色模式所使用的颜色节点"
+
+#: prefs.js:622
+msgid "Edit…"
+msgstr "编辑…"
+
+#: prefs.js:674
+msgid "Requires a rainbow color mode"
+msgstr "需要彩虹颜色模式"
+
+#: prefs.js:695 prefs.js:703
+msgid "Delete Style"
+msgstr "删除样式"
+
+#: prefs.js:704
+msgid "This custom style will be removed."
+msgstr "该自定义样式将被移除。"
+
+#: prefs.js:706
+msgid "Cancel"
+msgstr "取消"
+
+#: prefs.js:707
+msgid "Delete"
+msgstr "删除"
+
+#: prefs.js:730
+msgid "Customize Style"
+msgstr "自定义样式"
+
+#: prefs.js:750
+msgid "Save"
+msgstr "保存"
+
+#~ msgid "Precise"
+#~ msgstr "精确"
