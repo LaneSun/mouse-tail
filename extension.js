@@ -4,7 +4,6 @@ import GLib from "gi://GLib";
 import Shell from "gi://Shell";
 
 import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
-import { getPointerWatcher } from "resource:///org/gnome/shell/ui/pointerWatcher.js";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
 import {
@@ -81,8 +80,23 @@ export default class MouseTrailExtension extends Extension {
 
     this._recompute();
 
-    this._pointerWatcher = getPointerWatcher();
-    this.update_pointer_watcher();
+    // Pointer tracking goes through Meta.CursorTracker (available since
+    // GNOME 47 with this exact API). GNOME Shell 51 removed the
+    // ui/pointerWatcher.js helper module that used to wrap this.
+    // The 'position-invalidated' signal only sets a dirty flag; sampling
+    // happens once per _tick() so the number of trail points stays the
+    // same as with the old 20 ms pointer watcher, and no work is done
+    // while the pointer is idle (the signal is not emitted then).
+    this._cursorTracker = global.backend.get_cursor_tracker();
+    this._pointerDirty = true;
+    this._lastPointerX = null;
+    this._lastPointerY = null;
+    this._pointerPositionId = this._cursorTracker.connect(
+      "position-invalidated",
+      () => {
+        this._pointerDirty = true;
+      },
+    );
 
     this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 20, () => {
       this._tick();
@@ -120,16 +134,6 @@ export default class MouseTrailExtension extends Extension {
     this._points = [];
   }
 
-  update_pointer_watcher() {
-    if (this._drawIntervalWatcher) {
-      this._drawIntervalWatcher.remove();
-    }
-    this._drawIntervalWatcher = this._pointerWatcher.addWatch(
-      20,
-      this._onCapturedEvent.bind(this),
-    );
-  }
-
   // System color-scheme check. DEFAULT/PREFER_LIGHT count as light
   // (matching libadwaita); the legacy LIGHT/DARK enum values are also
   // covered; GNOME 50 removed them (undefined, so the comparisons are
@@ -161,6 +165,18 @@ export default class MouseTrailExtension extends Extension {
   _tick() {
     const layer = this._drawingLayer;
     if (!layer) return;
+
+    if (this._pointerDirty && this._cursorTracker) {
+      this._pointerDirty = false;
+      const [coords] = this._cursorTracker.get_pointer();
+      const { x, y } = coords;
+      // Skip stationary positions, like the old pointer watcher did
+      if (x !== this._lastPointerX || y !== this._lastPointerY) {
+        this._lastPointerX = x;
+        this._lastPointerY = y;
+        this._onCapturedEvent(x, y);
+      }
+    }
 
     const now = Date.now();
     const pts = (this._points = this._points.filter(
@@ -223,11 +239,12 @@ export default class MouseTrailExtension extends Extension {
       this._timeoutId = null;
     }
 
-    if (this._drawIntervalWatcher) {
-      this._drawIntervalWatcher.remove();
-      this._drawIntervalWatcher = null;
+    if (this._pointerPositionId) {
+      this._cursorTracker?.disconnect(this._pointerPositionId);
+      this._pointerPositionId = null;
     }
-    this._pointerWatcher = null;
+    this._cursorTracker = null;
+    this._pointerDirty = false;
 
     if (this._overviewShowingId) {
       Main.overview.disconnect(this._overviewShowingId);
